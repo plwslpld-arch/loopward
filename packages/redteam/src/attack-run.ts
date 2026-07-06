@@ -1,5 +1,6 @@
 import type { Provider, RoutingCase } from '../../core/src/types.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
+import { buildManifest, type Manifest, type StampInput } from '../../core/src/manifest.ts';
 import { ATTACKS, type Attack } from './attacks.ts';
 import { bootstrapDeltaCI, mean, type DeltaCI } from './metrics.ts';
 
@@ -32,6 +33,8 @@ export interface AttackReport {
   matrix: { caseId: string; clean: number; [attack: string]: string | number }[];
   /** every misroute under attack (for coevo). */
   failures: Failure[];
+  /** provenance: seed, tool-schema hash, oracle/version, model id, git sha (verifiable offline). */
+  manifest: Manifest;
 }
 
 const bit = (b: boolean): number => (b ? 1 : 0);
@@ -42,6 +45,7 @@ export async function runAttacks(
   seed: number,
   attacks: Attack[] = ATTACKS,
   variant: Variant = 'single',
+  stamp?: StampInput,
 ): Promise<AttackReport> {
   const clean = await runSuite(cases, provider, seed, variant);
   const cleanBy = new Map(clean.trajectories.map((t) => [t.caseId, bit(t.correct)]));
@@ -73,6 +77,7 @@ export async function runAttacks(
     });
   }
 
+  const toolNames = [...new Set(cases.flatMap((c) => c.candidates))];
   return {
     provider: provider.name,
     seed,
@@ -82,5 +87,6 @@ export async function runAttacks(
     attacks: results,
     matrix,
     failures,
+    manifest: buildManifest({ seed, variant, model: provider.name, toolNames, stamp }),
   };
 }

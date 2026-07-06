@@ -5,6 +5,7 @@
 import type { Provider, RoutingCase } from '../../core/src/types.ts';
 import { auditConfusability, type Tool } from '../../core/src/tools.ts';
 import type { Variant } from '../../core/src/loop.ts';
+import type { StampInput } from '../../core/src/manifest.ts';
 import { runAttacks, type AttackReport } from './attack-run.ts';
 
 export interface Rename { from: string; to: string; reason: string; }
@@ -68,9 +69,9 @@ function applyRenames(cases: RoutingCase[], map: Map<string, string>): RoutingCa
  * @param baseCases the routing cases (same intents get re-tested; only names change)
  */
 export async function runFix(
-  tools: Tool[], baseCases: RoutingCase[], provider: Provider, seed: number, variant: Variant = 'single',
+  tools: Tool[], baseCases: RoutingCase[], provider: Provider, seed: number, variant: Variant = 'single', stamp?: StampInput,
 ): Promise<FixReport> {
-  const before = await runAttacks(baseCases, provider, seed, undefined, variant);
+  const before = await runAttacks(baseCases, provider, seed, undefined, variant, stamp);
 
   const byName = new Map(tools.map((t) => [t.name, t]));
   const taken = new Set(tools.map((t) => t.name));
@@ -85,7 +86,7 @@ export async function runFix(
     renames.push({ from: b.name, to, reason: `confusable with ${a.name} (shared: ${p.sharedTokens.join(', ') || 'similar'})` });
   }
 
-  const after = await runAttacks(applyRenames(baseCases, map), provider, seed, undefined, variant);
+  const after = await runAttacks(applyRenames(baseCases, map), provider, seed, undefined, variant, stamp);
 
   // report on the attack that was worst BEFORE — same attack, before vs after (a controlled delta)
   const worst = before.attacks.reduce((m, x) => (x.accuracy < m.accuracy ? x : m), before.attacks[0]);

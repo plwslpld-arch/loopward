@@ -11,6 +11,8 @@ import { loadTools, auditConfusability, synthesizeCases, type Tool } from '../..
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
 import { runFix } from '../../redteam/src/fix.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
+import { gitSha, type StampInput } from '../../core/src/manifest.ts';
+import { verifyReport, formatVerify } from '../../eval/src/verify.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -29,6 +31,9 @@ const pct = (x: number) => (x * 100).toFixed(1) + '%';
 const pp = (x: number) => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + 'pp';
 
 interface ProviderOpts { model?: string; baseURL?: string }
+
+// wall-clock time + git enter ONLY here, at the CLI boundary — never in library code or self-checks.
+const stamp = (): StampInput => ({ timestamp: new Date().toISOString(), git_sha: gitSha() });
 
 async function cmdRun(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
   const cases = loadSuite(suite);
@@ -51,7 +56,7 @@ async function cmdAttack(suite: string | undefined, toolsPath: string | undefine
   } else {
     cases = loadSuite(suite!);
   }
-  const rep = await runAttacks(cases, provider, seed, undefined, variant);
+  const rep = await runAttacks(cases, provider, seed, undefined, variant, stamp());
   const outPath = out ?? `runs/attack-${rep.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rep, null, 2));
@@ -93,7 +98,7 @@ async function cmdFix(suite: string | undefined, toolsPath: string | undefined, 
     // no descriptions in a bare suite; derive a name-only catalog so the audit can still run
     tools = [...new Set(cases.flatMap((c) => c.candidates))].map((name) => ({ name, description: '' }));
   }
-  const rep = await runFix(tools, cases, provider, seed, variant);
+  const rep = await runFix(tools, cases, provider, seed, variant, stamp());
   const outPath = out ?? `runs/fix-${rep.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rep, null, 2));
@@ -158,6 +163,14 @@ async function cmdMulti(suite: string, provider: string, seed: number, out: stri
     }
     console.log(`gate ok: multi-step success ${pct(sum.success_rate)} >= ${failUnder}%`);
   }
+}
+
+function cmdVerify(reportPath: string) {
+  const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  const result = verifyReport(report);
+  console.log(`verifying ${reportPath} (offline, re-derives deterministic fields):\n`);
+  console.log(formatVerify(result));
+  process.exit(result.pass ? 0 : 1);
 }
 
 function cmdAudit(toolsPath: string, failOnHigh?: boolean) {
@@ -249,6 +262,7 @@ async function main() {
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
   else if (cmd === 'fix') await cmdFix(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
+  else if (cmd === 'verify') { const path = values.report ?? positionals[1]; if (!path) throw new Error('verify needs --report <report.json>'); cmdVerify(path); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
@@ -259,6 +273,7 @@ async function main() {
     console.error('  fix    --tools <schema.json> | --suite <f.json>   propose renames, re-verify the delta');
     console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
     console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
+    console.error('  verify --report <report.json>                     re-check a report\'s deterministic fields, offline');
     console.error('  run    --suite <f.json>                           clean routing accuracy only');
     console.error(`  common: [--provider ${PROVIDER_NAMES.join('|')}] [--model M] [--base-url URL] [--seed 42] [--out f]`);
     console.error('  keys via env, one per provider: OPENAI_API_KEY, DEEPSEEK_API_KEY, GROQ_API_KEY, DMXAPI_API_KEY, ...');

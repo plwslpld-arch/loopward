@@ -95,21 +95,21 @@ export function openaiCompatibleProvider(opts: { name?: string; baseURL: string;
 const env = (k: string): string | undefined => process.env[k];
 
 /**
- * Named OpenAI-compatible gateways. The base URL is baked in; the key is read from `keyEnv`
- * (falling back to OPENAI_API_KEY). Anything not listed still works via
+ * First-party OpenAI-compatible providers (each serves its own models, not a reseller/relay).
+ * The base URL is baked in; the key is read from `keyEnv` (falling back to OPENAI_API_KEY).
+ * Anything not listed still works via
  *   --provider openai --base-url <url> --model <name>
- * so "any OpenAI-compatible model" is genuinely any model, preset or not.
+ * so "any OpenAI-compatible model" is genuinely any model, preset or not — including your own
+ * self-hosted endpoint or any aggregator you choose to point at.
  */
 export const PRESETS: Record<string, { baseURL: string; keyEnv: string; defaultModel?: string }> = {
   openai:      { baseURL: 'https://api.openai.com/v1',                          keyEnv: 'OPENAI_API_KEY' },
   deepseek:    { baseURL: 'https://api.deepseek.com/v1',                        keyEnv: 'DEEPSEEK_API_KEY', defaultModel: 'deepseek-chat' },
-  openrouter:  { baseURL: 'https://openrouter.ai/api/v1',                       keyEnv: 'OPENROUTER_API_KEY' },
-  together:    { baseURL: 'https://api.together.xyz/v1',                        keyEnv: 'TOGETHER_API_KEY' },
-  groq:        { baseURL: 'https://api.groq.com/openai/v1',                     keyEnv: 'GROQ_API_KEY' },
   moonshot:    { baseURL: 'https://api.moonshot.cn/v1',                         keyEnv: 'MOONSHOT_API_KEY' },
   dashscope:   { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', keyEnv: 'DASHSCOPE_API_KEY' },
+  groq:        { baseURL: 'https://api.groq.com/openai/v1',                     keyEnv: 'GROQ_API_KEY' },
+  together:    { baseURL: 'https://api.together.xyz/v1',                        keyEnv: 'TOGETHER_API_KEY' },
   siliconflow: { baseURL: 'https://api.siliconflow.cn/v1',                      keyEnv: 'SILICONFLOW_API_KEY' },
-  dmx:         { baseURL: 'https://www.dmxapi.cn/v1',                           keyEnv: 'DMXAPI_API_KEY' },
 };
 
 export const PROVIDER_NAMES = ['mock', ...Object.keys(PRESETS)];
