@@ -34,7 +34,9 @@ function nearDuplicate(gt: string): string {
 /** Insert a decoy immediately before the ground truth so a tie resolves to the decoy. */
 function insertBefore(c: RoutingCase, decoy: string): string[] {
   let name = decoy;
-  while (c.candidates.includes(name)) name += '_x';
+  // dedup by the SAME normalization the oracle/guard use (case-insensitive), so a decoy can never
+  // become a norm-duplicate of an existing candidate — e.g. decoy "alt" vs a ground truth "Alt".
+  while (c.candidates.some((x) => x.toLowerCase() === name.toLowerCase())) name += '_x';
   const out: string[] = [];
   for (const cand of c.candidates) {
     if (cand === c.ground_truth) out.push(name);
