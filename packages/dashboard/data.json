@@ -1,0 +1,204 @@
+{
+  "generated": "seed 42, temp 0, tools.json (n=42)",
+  "attacks": [
+    "semantic_injection",
+    "minimal_context",
+    "boundary_blur",
+    "multi_intent",
+    "cross_skill_confusion",
+    "negation_trap"
+  ],
+  "models": [
+    {
+      "name": "claude-opus-4-8",
+      "vendor": "Anthropic",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 0,
+        "minimal_context": 23.8,
+        "boundary_blur": 16.7,
+        "multi_intent": 0,
+        "cross_skill_confusion": 2.4,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "claude-sonnet-5",
+      "vendor": "Anthropic",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 9.5,
+        "minimal_context": 23.8,
+        "boundary_blur": 4.8,
+        "multi_intent": 9.5,
+        "cross_skill_confusion": 2.4,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "deepseek-chat",
+      "vendor": "DeepSeek",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 23.8,
+        "minimal_context": 42.9,
+        "boundary_blur": 28.6,
+        "multi_intent": 21.4,
+        "cross_skill_confusion": 11.9,
+        "negation_trap": 2.4
+      }
+    },
+    {
+      "name": "claude-haiku-4-5",
+      "vendor": "Anthropic",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 40.5,
+        "minimal_context": 31,
+        "boundary_blur": 19,
+        "multi_intent": 2.4,
+        "cross_skill_confusion": 2.4,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "gpt-5.5",
+      "vendor": "OpenAI",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 50,
+        "minimal_context": 19,
+        "boundary_blur": 2.4,
+        "multi_intent": 14.3,
+        "cross_skill_confusion": 0,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "grok-4.3",
+      "vendor": "xAI",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 78.6,
+        "minimal_context": 16.7,
+        "boundary_blur": 14.3,
+        "multi_intent": 0,
+        "cross_skill_confusion": 0,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "gpt-5.4-mini",
+      "vendor": "OpenAI",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 88.1,
+        "minimal_context": 35.7,
+        "boundary_blur": 11.9,
+        "multi_intent": 7.1,
+        "cross_skill_confusion": 0,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "gemini-3.5-flash",
+      "vendor": "Google",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 92.9,
+        "minimal_context": 23.8,
+        "boundary_blur": 2.4,
+        "multi_intent": 2.4,
+        "cross_skill_confusion": 0,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "gpt-5.4",
+      "vendor": "OpenAI",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 97.6,
+        "minimal_context": 28.6,
+        "boundary_blur": 16.7,
+        "multi_intent": 19,
+        "cross_skill_confusion": 4.8,
+        "negation_trap": 0
+      }
+    },
+    {
+      "name": "gemini-3.1-pro",
+      "vendor": "Google",
+      "clean": 100,
+      "deltas": {
+        "semantic_injection": 100,
+        "minimal_context": 16.7,
+        "boundary_blur": 7.1,
+        "multi_intent": 4.8,
+        "cross_skill_confusion": 2.4,
+        "negation_trap": 0
+      }
+    }
+  ],
+  "variant": {
+    "model": "deepseek-chat",
+    "note": "single vs self-check",
+    "rows": [
+      [
+        "clean",
+        100,
+        92.9
+      ],
+      [
+        "boundary_blur",
+        71.4,
+        59.5
+      ],
+      [
+        "cross_skill_confusion",
+        88.1,
+        76.2
+      ],
+      [
+        "negation_trap",
+        97.6,
+        95.2
+      ],
+      [
+        "semantic_injection",
+        76.2,
+        78.6
+      ],
+      [
+        "multi_intent",
+        78.6,
+        83.3
+      ],
+      [
+        "minimal_context",
+        54.8,
+        57.1
+      ]
+    ]
+  },
+  "multistep": {
+    "model": "deepseek-chat",
+    "success": 60,
+    "premature_stop": 20,
+    "over_run": 20,
+    "observation": {
+      "labels": [
+        "no observations",
+        "with observations"
+      ],
+      "success": [
+        10,
+        60
+      ],
+      "over_run": [
+        80,
+        20
+      ]
+    }
+  }
+}
