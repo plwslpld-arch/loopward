@@ -11,9 +11,10 @@ Point it at your agent's tools and it tells you which ones the router will mix u
 prompt tweak breaks routing, and it hands you the failures back as training data. Everyone is designing agent
 loops. Almost nobody is checking whether the loop's *decisions* hold up. That is the gap this fills.
 
-A dozen frontier models all route tools with 100% accuracy on clean inputs in our suite. Add one injected line and
-the drop ranges from 0 points (Claude Opus-4-8 shrugs it off) to 100 (Gemini-3.1-pro gets it wrong every time).
-See [`docs/findings.md`](./docs/findings.md).
+Thirteen frontier models route tools near-perfectly on clean inputs in our suite (most at 100%, none below 90%).
+Add one injected line and the drop ranges from 0 points (Claude Opus-4-8 barely moves) to 100 (Gemini-3.1-pro
+gets it wrong on every case in this suite). These are single-seed, n=42 numbers; treat them as a pilot, not a
+ranking. See [`docs/findings.md`](./docs/findings.md).
 
 ## Quickstart
 
@@ -83,7 +84,7 @@ Harness-Bench, and the specific delta.
 
 ## Findings
 
-Reproducible results (12 models) live in [`docs/findings.md`](./docs/findings.md). Short version: routing
+Reproducible results (13 models) live in [`docs/findings.md`](./docs/findings.md). Short version: routing
 robustness is model-specific and does not track capability. The attacks that actually work are the boring ones
 (terse requests, lookalike names), not the adversarial-looking ones. And feeding tool observations back in a
 multi-step loop moved task success from 10% to 60% on the same model, which says the harness decides the outcome

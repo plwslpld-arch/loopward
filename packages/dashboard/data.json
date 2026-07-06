@@ -164,6 +164,19 @@
         "cross_skill_confusion": 2.4,
         "negation_trap": 0
       }
+    },
+    {
+      "name": "glm-5.1",
+      "vendor": "Zhipu",
+      "clean": 90,
+      "deltas": {
+        "semantic_injection": 90,
+        "minimal_context": 30,
+        "boundary_blur": 0,
+        "multi_intent": 20,
+        "cross_skill_confusion": 0,
+        "negation_trap": -10
+      }
     }
   ],
   "variant": {
