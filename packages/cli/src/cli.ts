@@ -14,6 +14,7 @@ import { buildExport, toFiles } from '../../coevo/src/export.ts';
 import { gitSha, type StampInput } from '../../core/src/manifest.ts';
 import { verifyReport, formatVerify } from '../../eval/src/verify.ts';
 import { harnessMatrix, DEFAULT_STRATEGIES } from '../../eval/src/harness-portability/harness-matrix.ts';
+import { runFlywheel } from '../../coevo/experiments/micro-loop/flywheel.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -194,6 +195,30 @@ async function cmdMatrix(suite: string | undefined, toolsPath: string | undefine
   console.log(`report → ${outPath}`);
 }
 
+async function cmdFlywheel(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, ratio: number, out: string | undefined, po: ProviderOpts) {
+  const provider = getProvider(providerName, po);
+  let cases: RoutingCase[];
+  if (toolsPath) {
+    const tools = loadTools(toolsPath);
+    console.log(`synthesizing ${tools.length} test intents from your tools with ${provider.name}...`);
+    cases = await synthesizeCases(tools, provider, seed);
+  } else cases = loadSuite(suite!);
+
+  const r = await runFlywheel(cases, provider, seed, { ratio });
+  const outPath = out ?? `runs/flywheel-${r.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(r, null, 2));
+
+  console.log(`\nprovider=${r.provider} seed=${seed}  split ${r.n_train} train / ${r.n_held} held (ratio ${r.ratio})`);
+  console.log(`\nguardrail (activated by TRAIN injections):\n  ${r.guardrail.replace(/\n/g, '\n  ') || '(none — no injection misroutes in TRAIN)'}`);
+  console.log(`\nheld-out injection subset (${r.addressable_attacks.join(', ')}):`);
+  console.log(`  accuracy  ${pct(r.before_accuracy)} → ${pct(r.after_accuracy)}`);
+  console.log(`  lift      ${pp(r.lift.delta)}${r.ci_valid ? `  [${pp(r.lift.lo)}, ${pp(r.lift.hi)}]` : '  (held set too small for a CI)'}`);
+  console.log(`  (all six attacks, pooled: ${pct(r.pooled_before)} → ${pct(r.pooled_after)})`);
+  console.log(`\n${r.note}`);
+  console.log(`receipt → ${outPath}`);
+}
+
 function cmdVerify(reportPath: string) {
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
   const result = verifyReport(report);
@@ -271,6 +296,7 @@ async function main() {
       variant: { type: 'string', short: 'v', default: 'single' },
       tools: { type: 'string', short: 't' },
       strategies: { type: 'string' },
+      ratio: { type: 'string' },
       'fail-under': { type: 'string' },
       'fail-on-high': { type: 'boolean' },
     },
@@ -285,6 +311,7 @@ async function main() {
   if (!values.suite && !values.tools && cmd === 'attack') throw new Error('attack needs --suite <file.json> or --tools <schema.json>');
   if (!values.suite && !values.tools && cmd === 'fix') throw new Error('fix needs --suite <file.json> or --tools <schema.json>');
   if (!values.suite && !values.tools && cmd === 'matrix') throw new Error('matrix needs --suite <file.json> or --tools <schema.json>');
+  if (!values.suite && !values.tools && cmd === 'flywheel') throw new Error('flywheel needs --suite <file.json> or --tools <schema.json>');
 
   const failUnder = values['fail-under'] !== undefined ? Number(values['fail-under']) : undefined;
 
@@ -293,6 +320,7 @@ async function main() {
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
   else if (cmd === 'fix') await cmdFix(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'matrix') await cmdMatrix(values.suite, values.tools, values.provider!, seed, values.out, po, values.strategies);
+  else if (cmd === 'flywheel') await cmdFlywheel(values.suite, values.tools, values.provider!, seed, values.ratio !== undefined ? Number(values.ratio) : 0.5, values.out, po);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
   else if (cmd === 'verify') { const path = values.report ?? positionals[1]; if (!path) throw new Error('verify needs --report <report.json>'); cmdVerify(path); }
   else if (cmd === 'coevo') {
@@ -306,6 +334,7 @@ async function main() {
     console.error('  matrix --tools <schema.json> | --suite <f.json>   compare loop strategies on a fixed model');
     console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
     console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
+    console.error('  flywheel --tools <schema.json> | --suite <f.json> train guardrail, re-measure held-out lift');
     console.error('  verify --report <report.json>                     re-check a report\'s deterministic fields, offline');
     console.error('  run    --suite <f.json>                           clean routing accuracy only');
     console.error(`  common: [--provider ${PROVIDER_NAMES.join('|')}] [--model M] [--base-url URL] [--seed 42] [--out f]`);
