@@ -1,0 +1,21 @@
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.log
+.DS_Store
+.env
+.env.*
+!.env.example
+# run artifacts
+runs/
+*.sqlite
+*.duckdb
+.turbo/
+.pnpm-store/
+# never commit any local model weights / large data
+*.safetensors
+*.bin
+*.gguf
