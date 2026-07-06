@@ -9,9 +9,13 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm -r test",
+    "test": "node packages/core/src/selfcheck.ts",
     "lint": "pnpm -r lint",
-    "loopbench": "pnpm --filter @loopbench/cli exec loopbench"
+    "loopbench": "node packages/core/src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0"
   },
   "keywords": [
     "ai-agents",

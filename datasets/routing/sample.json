@@ -1,0 +1,20 @@
+{
+  "meta": {
+    "name": "sample-routing",
+    "note": "Small hand-authored routing suite for W1 smoke-testing. JSON for now; switch to YAML when a human is authoring many cases. Near-duplicate candidate names are intentional — they preview the boundary_blur / cross_skill_confusion surface."
+  },
+  "cases": [
+    { "id": "weather-now",   "intent": "What's the weather in Tokyo right now?",            "candidates": ["get_weather", "get_forecast", "get_air_quality"],        "ground_truth": "get_weather" },
+    { "id": "weather-fcst",  "intent": "Will it rain in Tokyo tomorrow?",                   "candidates": ["get_weather", "get_forecast", "get_air_quality"],        "ground_truth": "get_forecast" },
+    { "id": "msg-email",     "intent": "Email the quarterly report to Sarah",               "candidates": ["send_email", "send_slack_message", "create_calendar_event"], "ground_truth": "send_email" },
+    { "id": "msg-slack",     "intent": "Ping the team on Slack about the outage",           "candidates": ["send_email", "send_slack_message", "create_calendar_event"], "ground_truth": "send_slack_message" },
+    { "id": "msg-cal",       "intent": "Block 3pm tomorrow for a design review",            "candidates": ["send_email", "send_slack_message", "create_calendar_event"], "ground_truth": "create_calendar_event" },
+    { "id": "search-code",   "intent": "Search the codebase for the config parser",         "candidates": ["search_web", "search_codebase", "search_docs"],          "ground_truth": "search_codebase" },
+    { "id": "search-docs",   "intent": "Look up the latest React docs for useEffect",       "candidates": ["search_web", "search_codebase", "search_docs"],          "ground_truth": "search_docs" },
+    { "id": "issue-create",  "intent": "Open a bug report for the login crash",             "candidates": ["create_github_issue", "list_github_issues", "close_github_issue"], "ground_truth": "create_github_issue" },
+    { "id": "issue-list",    "intent": "Show me all open issues",                           "candidates": ["create_github_issue", "list_github_issues", "close_github_issue"], "ground_truth": "list_github_issues" },
+    { "id": "fin-convert",   "intent": "Convert 100 USD to EUR",                            "candidates": ["convert_currency", "get_stock_price"],                   "ground_truth": "convert_currency" },
+    { "id": "fin-stock",     "intent": "How much is Apple stock today?",                    "candidates": ["convert_currency", "get_stock_price"],                   "ground_truth": "get_stock_price" },
+    { "id": "text-translate","intent": "Translate this paragraph to French",                "candidates": ["translate_text", "summarize_text"],                      "ground_truth": "translate_text" }
+  ]
+}

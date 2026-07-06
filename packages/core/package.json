@@ -1,0 +1,11 @@
+{
+  "name": "@loopbench/core",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "LoopBench core: loop runner + routing oracle.",
+  "license": "Apache-2.0",
+  "bin": { "loopbench": "./src/cli.ts" },
+  "scripts": {
+    "test": "node src/selfcheck.ts"
+  }
+}

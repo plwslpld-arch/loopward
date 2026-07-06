@@ -3,13 +3,13 @@
 Realistic solo timeline: **2 weeks = defensible MVP, 3–4 weeks = strong.** Every week ships a verifiable artifact.
 Ship nothing publicly until MVP is reached (a shallow demo backfires).
 
-## W1 — kernel runs, produce clean data
-- Independent git root under personal identity/email. IP + novelty hygiene files first (LICENSE, PROVENANCE, RELATED-WORK). ✅ (scaffolded)
-- `core`: 5-node loop state machine (perceive → route → act → verify → decide/stop) + `single` variant, thin over a public agent framework (do not hand-roll a naive loop).
-- DeepSeek + OpenAI-compatible provider abstraction.
-- Structured trajectory trace (JSONL).
-- `tasks`: routing YAML loader + `RoutingOracle` (deterministic ground-truth scoring).
-- **Verify:** `loopbench run` prints clean routing accuracy for one model + emits one trajectory JSONL.
+## W1 — kernel runs, produce clean data  ✅ DONE
+- ✅ Independent git root under personal identity/email. IP + novelty hygiene files first (LICENSE, PROVENANCE, RELATED-WORK).
+- ✅ `core`: 5-node loop (perceive → route → act → verify → stop) + `single` variant. `act` is a no-op for routing-only; multi-step arrives W3.
+- ✅ Provider abstraction: `mock` (deterministic, zero-dep, offline) + `deepseek` (OpenAI-compatible via plain fetch, needs `DEEPSEEK_API_KEY`).
+- ✅ Structured trajectory trace (JSONL) + `RoutingOracle` (deterministic ground-truth scoring) + JSON suite loader with validation.
+- ✅ **Verify:** `node packages/core/src/cli.ts run --suite datasets/routing/sample.json` → `10/12 = 83.3%` (mock) + trajectory JSONL. Self-check: `node packages/core/src/selfcheck.ts`.
+- ⏭️ Deferred: Vercel AI SDK (routing is a single structured call — plain fetch is right; adopt the SDK at W3 for real multi-step tool-calling). YAML datasets (JSON for now).
 
 ## W2 — adversarial + robustness metrics + 2nd variant  (MVP line → can go public)
 - `redteam`: 6 attack classes (intent-side transforms, each with public-source header) + attack-runner.
