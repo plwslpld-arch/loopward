@@ -20,13 +20,13 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 - **Verify (done):** `loopbench attack --suite datasets/routing/tools.json --provider deepseek` → 6-row delta+CI table + docs/findings.md.
 - 🔜 To make F1 publishable: ≥2 models + ≥3 seeds + per-family breakdown + the `self-check` variant (moved here from the deferred list).
 
-## W3 — 2nd variant + co-evolution loop + portability  (the soul — do not cut)
-- `variants`: `planner-subagent` (dispatch = prime `cross_skill_confusion` surface).
-- `tasks`: multistep set with deterministic verifier; eval delta view.
-- `coevo`: export failures → preference pairs / verifiable reward / SFT negatives + a micro-experiment
-  (small open model LoRA/preference, or rigorous offline reward modeling) showing "feed failures back → measurable robustness gain".
-- `eval/harness-portability`: same suite across ≥2 real harnesses; variance decomposition (harness property vs model property).
-- **Verify:** a "harness vs model" variance chart + a micro-experiment before/after curve.
+## W3 — co-evolution loop + variants + breadth  (the soul — do not cut)
+- ✅ `coevo`: export failures → preference pairs / verifiable reward / SFT negatives (`loopbench coevo`). Verified on deepseek: 17 real misroutes → 17 pref pairs / 34 reward / 17 sft.
+- ✅ `self-check` variant (reflect decision node) wired through run/attack/CLI (`--variant`).
+- ✅ Provider generalized to env-injected OpenAI-compatible → multi-model breadth (deepseek + gpt/claude/gemini via any gateway; no secrets in repo).
+- 🔄 Running: 4-model breadth table (deepseek ✅ + gpt-5.4 ✅ + claude/gemini in flight) → cross-model vulnerability fingerprints. GPT-5.4 bombshell: semantic_injection 100%→2.4% (Δ+97.6pp) while deepseek only +23.8pp.
+- 🔄 Running: single vs self-check variant experiment (does reflection recover attack-induced misroutes?).
+- 🔜 `planner-subagent` variant + micro-experiment (offline reward analysis showing "feed failures back → measurable robustness gain") + harness-portability variance decomposition.
 
 ## W4 — dashboard + docs + launch materials
 - `dashboard`: Vite/React static export → GitHub Pages (leaderboard / attack×variant heatmap / trajectory viewer / delta).
