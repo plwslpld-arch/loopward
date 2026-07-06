@@ -6,6 +6,7 @@ import { ATTACKS, getAttack } from './attacks.ts';
 import { bootstrapDeltaCI } from './metrics.ts';
 import { runAttacks } from './attack-run.ts';
 import { runFix } from './fix.ts';
+import { assertMeaningPreserved, MeaningPreservationError, guardRecall, loadGoldSlice } from './oracle-guard.ts';
 
 // every attack preserves ground_truth and keeps it in the candidate list
 const c: RoutingCase = { id: 't', intent: 'What is the weather in Tokyo', candidates: ['get_weather', 'get_forecast'], ground_truth: 'get_weather' };
@@ -62,3 +63,23 @@ const renamed = fixRep.renames[0];
 assert.notEqual(renamed.to, renamed.from, 'rename should change the name');
 assert.match(renamed.to, /^[a-z0-9_]+$/, 'rename should be a clean snake_case identifier');
 console.log(`selfcheck OK — fix renamed ${fixRep.renames.length} pair(s), ${renamed.from}→${renamed.to}, ${fixRep.recovered_pp >= 0 ? '+' : ''}${fixRep.recovered_pp}pp on ${fixRep.worst_attack}`);
+
+// oracle-guard: all 6 shipped attacks satisfy the structural invariants; each violation is caught
+for (const a of ATTACKS) assert.doesNotThrow(() => assertMeaningPreserved(c, a.apply(c)), `${a.name} tripped the guard`);
+const violations: [RoutingCase, string][] = [
+  [{ ...c, ground_truth: 'get_forecast' }, 'gt_changed'],
+  [{ ...c, candidates: ['get_forecast', 'send_email'] }, 'gt_not_candidate'],
+  [{ ...c, candidates: ['get_weather'] }, 'candidate_dropped'],
+  [{ ...c, candidates: ['get_weather', 'get_weather', 'get_forecast'] }, 'gt_duplicated'],
+  [{ ...c, intent: '   ' }, 'empty_intent'],
+];
+for (const [after, code] of violations)
+  assert.throws(() => assertMeaningPreserved(c, after), (e: unknown) => e instanceof MeaningPreservationError && e.code === code, `expected ${code}`);
+
+// gold slice: honest structural-recall, never a false positive
+const gr = guardRecall(loadGoldSlice());
+assert.equal(gr.false_positives, 0, 'guard must never reject a meaning-preserving perturbation');
+assert.equal(gr.caught, 5, 'guard should catch all 5 structural flips');
+assert.equal(gr.missed, 2, 'guard is expected to miss the 2 semantic-only flips');
+assert.ok(gr.recall > 0.7 && gr.recall < 0.75, 'recall should be 5/7');
+console.log(`selfcheck OK — guard: 6/6 attacks pass, caught ${gr.caught}/${gr.flips} flips (recall ${(gr.recall * 100).toFixed(0)}%), ${gr.missed} semantic-only misses, ${gr.false_positives} false positives`);

@@ -2,6 +2,7 @@ import type { Provider, RoutingCase } from '../../core/src/types.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { buildManifest, type Manifest, type StampInput } from '../../core/src/manifest.ts';
 import { ATTACKS, type Attack } from './attacks.ts';
+import { assertMeaningPreserved } from './oracle-guard.ts';
 import { bootstrapDeltaCI, mean, type DeltaCI } from './metrics.ts';
 
 export interface AttackResult {
@@ -56,7 +57,9 @@ export async function runAttacks(
 
   const results: AttackResult[] = [];
   for (const atk of attacks) {
-    const perturbed = cases.map((c) => atk.apply(c));
+    // guard the single choke-point every attack flows through: a perturbation may make routing
+    // harder but must never silently change the true answer (throws MeaningPreservationError).
+    const perturbed = cases.map((c) => { const p = atk.apply(c); assertMeaningPreserved(c, p); return p; });
     const run = await runSuite(perturbed, provider, seed, variant);
     const by = new Map(run.trajectories.map((t) => [t.caseId, bit(t.correct)]));
     const attackArr = cases.map((c) => by.get(c.id) ?? 0);
