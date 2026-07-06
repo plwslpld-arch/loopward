@@ -1,0 +1,8 @@
+{
+  "name": "@loopbench/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "LoopBench CLI: run + attack.",
+  "license": "Apache-2.0",
+  "bin": { "loopbench": "./src/cli.ts" }
+}

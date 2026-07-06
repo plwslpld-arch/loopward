@@ -11,11 +11,13 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 - ✅ **Verify:** `node packages/core/src/cli.ts run --suite datasets/routing/sample.json` → `10/12 = 83.3%` (mock) + trajectory JSONL. Self-check: `node packages/core/src/selfcheck.ts`.
 - ⏭️ Deferred: Vercel AI SDK (routing is a single structured call — plain fetch is right; adopt the SDK at W3 for real multi-step tool-calling). YAML datasets (JSON for now).
 
-## W2 — adversarial + robustness metrics + 2nd variant  (MVP line → can go public)
-- `redteam`: 6 attack classes (intent-side transforms, each with public-source header) + attack-runner.
-- `eval`: metrics (misroute / wrong-tool / over-run / premature-stop / robustness-delta) + multi-seed + bootstrap CI.
-- `variants`: `self-check` (reflexion-lite) — an extra decision node = an extra attack surface.
-- **Verify:** attack×variant misroute heatmap + ≥1 reproducible, counter-intuitive finding (with CI).
+## W2 — adversarial + robustness metrics  (core DONE; MVP line needs a real-model run)
+- ✅ `redteam`: 6 attack classes (deterministic intent-side transforms, each with public-source tag) + attack-runner.
+- ✅ metrics: accuracy / misroute_rate / robustness_delta + paired bootstrap 95% CI (seeded, reproducible). (over-run / premature-stop need multi-step → W3.)
+- ✅ `loopbench attack` → per-attack acc + delta + CI table, heatmap-ready matrix (attack × case) JSON.
+- ⏭️ `self-check` variant deferred to W3: with the mock a 2nd variant is contrived; it's only a meaningful comparison against a reasoning provider.
+- ⚠️ **Not yet the finding.** Mock numbers only prove the pipeline (mock is a fragile token-overlap stand-in, so deltas are huge). The publishable, counter-intuitive finding needs a **real-model run** (`--provider deepseek`, needs `DEEPSEEK_API_KEY`). Do that before any public post.
+- **Verify (done):** `loopbench attack --suite datasets/routing/sample.json` → 6-row delta+CI table.
 
 ## W3 — 2nd variant + co-evolution loop + portability  (the soul — do not cut)
 - `variants`: `planner-subagent` (dispatch = prime `cross_skill_confusion` surface).

@@ -1,8 +1,8 @@
 {
-  "name": "@loopbench/core",
+  "name": "@loopbench/redteam",
   "version": "0.0.0",
   "type": "module",
-  "description": "LoopBench core: loop runner + routing oracle.",
+  "description": "LoopBench red-team: intent-side attack classes + robustness metrics.",
   "license": "Apache-2.0",
   "scripts": {
     "test": "node src/selfcheck.ts"
