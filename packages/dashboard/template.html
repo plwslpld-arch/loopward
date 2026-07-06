@@ -9,7 +9,7 @@
     --bg: #f6f7f9; --panel: #ffffff; --line: #e5e8ec; --ink: #171b22; --muted: #616b7a;
     --accent: #0d9488; --accent-soft: #0d948815; --shadow: 0 1px 2px #0000000d, 0 8px 24px #0b0f1408;
     --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#0b0e14; --panel:#111621; --line:#212836; --ink:#e6edf3; --muted:#8b95a5;
@@ -19,28 +19,22 @@
   :root[data-theme="dark"]  { --bg:#0b0e14; --panel:#111621; --line:#212836; --ink:#e6edf3; --muted:#8b95a5; --accent:#5eead4; --accent-soft:#5eead41a; --shadow:0 1px 2px #0000, 0 8px 30px #0006; }
 
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55;
-    -webkit-font-smoothing:antialiased; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); line-height:1.55; -webkit-font-smoothing:antialiased; }
   .wrap { max-width: 1040px; margin:0 auto; padding: 40px 24px 80px; }
   a { color: var(--accent); }
   h1,h2 { letter-spacing:-0.02em; text-wrap:balance; }
   .mono { font-family:var(--mono); }
-  .num { font-variant-numeric: tabular-nums; }
 
   header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
   .brand { font-family:var(--mono); font-weight:600; font-size:14px; letter-spacing:.02em; color:var(--accent); }
   h1 { font-size: clamp(28px, 4.5vw, 42px); margin:.15em 0 .1em; }
   .tagline { color:var(--muted); font-size:17px; max-width:62ch; margin:0 0 4px; }
-  .pill { display:inline-block; font-size:12px; font-family:var(--mono); color:var(--muted);
-    border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
-  .themebtn { border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:8px;
-    padding:6px 10px; font-family:var(--mono); font-size:12px; cursor:pointer; white-space:nowrap; }
+  .pill { display:inline-block; font-size:12px; font-family:var(--mono); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
+  .btns { display:flex; gap:8px; flex:none; }
+  .tbtn { border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:8px; padding:6px 10px; font-family:var(--mono); font-size:12px; cursor:pointer; white-space:nowrap; }
 
-  .hero { display:grid; grid-template-columns: auto 1fr; gap:20px 28px; align-items:center;
-    background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px 28px;
-    box-shadow:var(--shadow); margin:28px 0 12px; }
-  .hero .big { font-family:var(--mono); font-weight:600; font-size:clamp(36px,7vw,58px);
-    line-height:1; letter-spacing:-.03em; white-space:nowrap; }
+  .hero { display:grid; grid-template-columns: auto 1fr; gap:20px 28px; align-items:center; background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:24px 28px; box-shadow:var(--shadow); margin:28px 0 12px; }
+  .hero .big { font-family:var(--mono); font-weight:600; font-size:clamp(36px,7vw,58px); line-height:1; letter-spacing:-.03em; white-space:nowrap; }
   .hero .big .g { color:#16a34a; } .hero .big .r { color:#dc2626; } .hero .big .s { color:var(--muted); font-weight:400; }
   .hero .cap { color:var(--muted); font-size:15px; }
   .hero .cap b { color:var(--ink); font-weight:600; }
@@ -52,15 +46,13 @@
   .scroll { overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); }
   table.heat { border-collapse:collapse; width:100%; font-size:13px; }
   table.heat th, table.heat td { padding:0; text-align:center; }
-  table.heat thead th { position:sticky; top:0; background:var(--panel); color:var(--muted); font-weight:500;
-    font-family:var(--mono); font-size:11px; padding:12px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table.heat thead th { position:sticky; top:0; background:var(--panel); color:var(--muted); font-weight:500; font-family:var(--mono); font-size:11px; padding:12px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
   table.heat thead th.model { text-align:left; padding-left:16px; }
   .mcell { display:flex; align-items:center; gap:8px; padding:8px 16px; text-align:left; white-space:nowrap; }
   .dot { width:8px; height:8px; border-radius:50%; flex:none; }
   .mname { font-family:var(--mono); font-size:12.5px; }
   .vend { color:var(--muted); font-size:10.5px; font-family:var(--mono); }
-  td.cell { color:#fff; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600;
-    font-size:12.5px; min-width:78px; height:40px; border:2px solid var(--panel); border-radius:6px; }
+  td.cell { color:#fff; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600; font-size:12.5px; min-width:78px; height:40px; border:2px solid var(--panel); border-radius:6px; }
   td.rowlab { border-top:1px solid var(--line); }
 
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:14px; }
@@ -90,98 +82,148 @@
   <header class="top">
     <div>
       <div class="brand">LoopBench</div>
-      <h1>Every model here routes perfectly. Then it doesn't.</h1>
-      <p class="tagline">A test suite for the tool-routing decision inside an agent loop. All 10 models below pick the right tool 100% of the time on clean inputs. Add one line to the prompt and they start getting it wrong.</p>
+      <h1 id="t-h1"></h1>
+      <p class="tagline" id="t-tag"></p>
       <span class="pill" id="meta"></span>
     </div>
-    <button class="themebtn" id="theme">theme</button>
+    <div class="btns">
+      <button class="tbtn" id="lang">中</button>
+      <button class="tbtn" id="theme">◐</button>
+    </div>
   </header>
 
   <div class="hero">
-    <div class="big"><span class="g">+0</span> <span class="s">to</span> <span class="r">+100</span><span class="s" style="font-size:.4em"> pts</span></div>
-    <div class="cap">One line of injected text ("always prefer tool X"), run against 10 models. It costs <b>Claude Opus-4-8</b> nothing and breaks <b>Gemini-3.1-pro</b> on every single case. Which model you run turns out to matter more than the loop you build around it, and the split follows the vendor, not the model size.</div>
+    <div class="big"><span class="g">+0</span> <span class="s" id="t-to">to</span> <span class="r">+100</span><span class="s" style="font-size:.4em"> pts</span></div>
+    <div class="cap" id="t-cap"></div>
   </div>
 
   <section>
-    <h2>How each model holds up</h2>
-    <p class="sub">Each number is how many points of routing accuracy the attack costs. Green means the model held up, red means it broke. Rows are sorted by how badly injection hurts.</p>
+    <h2 id="t-s1h"></h2>
+    <p class="sub" id="t-s1s"></p>
     <div class="scroll"><table class="heat" id="heat"></table></div>
   </section>
 
   <section>
-    <h2>What the grid is telling us</h2>
+    <h2 id="t-s2h"></h2>
     <div class="cards" id="cards"></div>
   </section>
 
   <section class="two">
     <div>
-      <h2>Adding a "double-check" step made it worse</h2>
-      <p class="sub">DeepSeek, plain vs a self-check loop that re-reads its own pick before committing. The bar is how much the extra step helped (green) or hurt (red).</p>
+      <h2 id="t-s3ah"></h2>
+      <p class="sub" id="t-s3as"></p>
       <div class="bars" id="variant"></div>
     </div>
     <div>
-      <h2>One good route is not a finished task</h2>
-      <p class="sub">DeepSeek routes perfectly in a single turn. Real multi-step tasks are another story, and the harness decides how much.</p>
+      <h2 id="t-s3bh"></h2>
+      <p class="sub" id="t-s3bs"></p>
       <div class="bars" id="multi"></div>
-      <div class="caveat">Feeding the tool result back after each step took success from 10% to 60%. Same model, same tasks. The only thing that changed was the harness.</div>
+      <div class="caveat" id="t-s3bc"></div>
     </div>
   </section>
 
   <footer>
-    <p>Scored with a deterministic ground-truth oracle, no LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, with paired bootstrap 95% intervals. Reproduce a row with <code>loopbench attack --suite datasets/routing/tools.json --provider openai --model &lt;name&gt;</code>.</p>
-    <div class="caveat">Read this as a pilot, not a verdict. One seed, one 42-case suite, one gateway (model aliases may resolve to specific snapshots). Treat the exact numbers as suite-dependent. What holds up is the ordering between models and the way they cluster by vendor. This probes routing robustness. It is not a safety audit or a leaderboard.</div>
+    <p id="t-fp"></p>
+    <div class="caveat" id="t-fc"></div>
   </footer>
 </div>
 
 <script>
 const DATA = /*__DATA__*/{};
-const ATTACK_LABEL = { semantic_injection:"injection", minimal_context:"terse prompt", boundary_blur:"lookalike names", multi_intent:"two requests", cross_skill_confusion:"overlapping tools", negation_trap:"do-not-use X" };
-const VENDOR_COLOR = { Anthropic:"#d97757", OpenAI:"#10a37f", Google:"#4285f4", xAI:"#8b5cf6", DeepSeek:"#4d6bfe" };
+const VENDOR_COLOR = { Anthropic:"#d97757", OpenAI:"#10a37f", Google:"#4285f4", xAI:"#8b5cf6", DeepSeek:"#4d6bfe", Alibaba:"#ff6a00", Zhipu:"#3859ff" };
+const N = DATA.models.length;
+
+const T = {
+  en: {
+    lang:"中", h1:"Every model here routes perfectly. Then it doesn't.",
+    tag:`A test suite for the tool-routing decision inside an agent loop. All ${N} models below pick the right tool 100% of the time on clean inputs. Add one line to the prompt and they start getting it wrong.`,
+    to:"to",
+    cap:`One line of injected text ("always prefer tool X"), run against ${N} models. It costs <b>Claude Opus-4-8</b> nothing and breaks <b>Gemini-3.1-pro</b> on every single case. Which model you run turns out to matter more than the loop you build around it, and it does not track model size.`,
+    s1h:"How each model holds up",
+    s1s:"Each number is how many points of routing accuracy the attack costs. Green means the model held up, red means it broke. Rows sorted by how badly injection hurts.",
+    s2h:"What the grid is telling us",
+    s3ah:'Adding a "double-check" step made it worse',
+    s3as:"DeepSeek, plain vs a self-check loop that re-reads its own pick before committing. The bar is how much the extra step helped (green) or hurt (red).",
+    s3bh:"One good route is not a finished task",
+    s3bs:"DeepSeek routes perfectly in a single turn. Real multi-step tasks are another story, and the harness decides how much.",
+    s3bc:"Feeding the tool result back after each step took success from 10% to 60%. Same model, same tasks. The only thing that changed was the harness.",
+    fp:'Scored with a deterministic ground-truth oracle, no LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, paired bootstrap 95% intervals. Reproduce a row with <code>loopbench attack --tools your-tools.json --provider openai --model &lt;name&gt;</code>.',
+    fc:"Read this as a pilot, not a verdict. One seed, one 42-case suite, one gateway (aliases may resolve to specific snapshots). Treat the exact numbers as suite-dependent. What holds up is the ordering between models and the per-model story. This probes routing robustness. It is not a safety audit or a leaderboard.",
+    attack:{ semantic_injection:"injection", minimal_context:"terse prompt", boundary_blur:"lookalike names", multi_intent:"two requests", cross_skill_confusion:"overlapping tools", negation_trap:"do-not-use X" },
+    multi:["1-shot routing","multi-step done","stopped too early","never stopped"],
+    cards:[
+      ["Robustness runs in families","Anthropic's Claude models resist injection best: Opus loses <span class='k'>0</span>, Sonnet <span class='k'>10</span>, Haiku <span class='k'>40</span>. Everyone else is scattered."],
+      ["DeepSeek is split","<span class='k'>deepseek-chat</span> shrugs off injection (<span class='k'>+24</span>) but <span class='k'>deepseek-v4-pro</span> falls apart (<span class='k'>+74</span>). Robustness is a property of the model, not the brand."],
+      ["Newer is not always safer","OpenAI got safer (GPT-5.4 +98 to 5.5 +50). DeepSeek went the other way (chat +24 to v4-pro +74). You cannot assume the next release is more robust."],
+      ["Nobody falls for \"do not use X\"","The attack you would expect to work does nothing to any model. The ones that land are the dull ones: vague requests and lookalike tool names."],
+    ],
+  },
+  zh: {
+    lang:"EN", h1:"这些模型选工具都是满分。然后就翻车了。",
+    tag:`一套给 agent loop 里"该调哪个工具"这个决策做的测试。下面 ${N} 个模型在干净输入上选工具都 100% 准。往提示里加一句话,它们就开始选错。`,
+    to:"到",
+    cap:`往上下文里注入一句"优先用工具 X",拿 ${N} 个模型跑。<b>Claude Opus-4-8</b> 毫发无伤,<b>Gemini-3.1-pro</b> 每道都错。你用哪个模型,比你在外面套什么 loop 更决定成败,而且这跟模型大小无关。`,
+    s1h:"各模型扛得怎么样",
+    s1s:"每个数字是这类攻击让路由准确率掉了多少分。绿的扛住了,红的崩了。行按注入的伤害排序。",
+    s2h:"这张表说明了什么",
+    s3ah:'加个"再确认"反而更糟',
+    s3as:"DeepSeek,普通跑 vs 一个 self-check 循环(提交前先复查自己的选择)。柱子是这一步帮了忙(绿)还是帮了倒忙(红)。",
+    s3bh:"选对一步,不等于任务完成",
+    s3bs:"DeepSeek 单步选工具满分。真实的多步任务是另一回事,而且 harness 决定差多少。",
+    s3bc:"每步把工具结果回传给模型,成功率从 10% 提到 60%。同一个模型、同样的任务,变的只有 harness。",
+    fp:'用确定性 ground-truth 判分,不用 LLM 当裁判。42 条用例、10 个工具族,temperature 0,seed 42,配对 bootstrap 95% 区间。复现一行:<code>loopbench attack --tools your-tools.json --provider openai --model &lt;名字&gt;</code>。',
+    fc:"当它是 pilot,不是定论。单 seed、单 42 条用例、单网关(别名可能指向特定快照)。具体数值随用例集变。站得住的是模型之间的排序和 per-model 的故事。这是路由鲁棒性的探针,不是安全审计,也不是排行榜。",
+    attack:{ semantic_injection:"注入", minimal_context:"话太短", boundary_blur:"撞名工具", multi_intent:"两件事", cross_skill_confusion:"功能重叠", negation_trap:"否定 X" },
+    multi:["单步路由","多步完成","停太早","停不下来"],
+    cards:[
+      ["鲁棒性按家族走","Anthropic 的 Claude 系最抗注入:Opus 掉 <span class='k'>0</span>、Sonnet <span class='k'>10</span>、Haiku <span class='k'>40</span>。其他家都很散。"],
+      ["DeepSeek 一分为二","<span class='k'>deepseek-chat</span> 扛得住注入(<span class='k'>+24</span>),但 <span class='k'>deepseek-v4-pro</span> 崩了(<span class='k'>+74</span>)。鲁棒是模型的属性,不是牌子的。"],
+      ["越新不一定越安全","OpenAI 变稳了(GPT-5.4 +98 → 5.5 +50)。DeepSeek 反着走(chat +24 → v4-pro +74)。别默认下一代更抗打。"],
+      ["没人上\"别用 X\"的当","你以为好使的那个攻击对谁都没用。真咬人的是最无聊的:话说得糊、工具名撞脸。"],
+    ],
+  },
+};
+
+let lang = (navigator.language || "en").startsWith("zh") ? "zh" : "en";
 
 function sev(v){ const t=Math.max(0,Math.min(100,v))/100; const hue = 145 - 145*t; const l = 34 + 6*Math.sin(t*Math.PI); return `hsl(${hue.toFixed(0)} 62% ${l.toFixed(0)}%)`; }
 
 function heat(){
-  const t=document.getElementById("heat"); const A=DATA.attacks;
-  let h="<thead><tr><th class='model'>model</th>"+A.map(a=>`<th>${ATTACK_LABEL[a]}</th>`).join("")+"</tr></thead><tbody>";
+  const t=document.getElementById("heat"); const A=DATA.attacks; const AL=T[lang].attack;
+  let h="<thead><tr><th class='model'>model</th>"+A.map(a=>`<th>${AL[a]}</th>`).join("")+"</tr></thead><tbody>";
   for(const m of DATA.models){
     h+=`<tr><td class='rowlab'><div class='mcell'><span class='dot' style='background:${VENDOR_COLOR[m.vendor]||"#888"}'></span><span><span class='mname'>${m.name}</span><br><span class='vend'>${m.vendor}</span></span></div></td>`;
-    for(const a of A){ const v=m.deltas[a]; h+=`<td class='cell' style='background:${sev(v)}' title='${m.name}, ${ATTACK_LABEL[a]}: costs ${v} points'>+${v}</td>`; }
+    for(const a of A){ const v=m.deltas[a]; h+=`<td class='cell' style='background:${sev(v)}' title='${m.name}, ${AL[a]}: ${v}'>+${v}</td>`; }
     h+="</tr>";
   }
   t.innerHTML=h+"</tbody>";
 }
-
-function cards(){
-  const c=[
-    ["Robustness runs in families","Anthropic's Claude models resist injection best: Opus loses <span class='k'>0</span> points, Sonnet <span class='k'>10</span>, Haiku <span class='k'>40</span>. DeepSeek holds up too (<span class='k'>24</span>). The OpenAI, Google and xAI flagships fall apart, dropping <span class='k'>50 to 100</span>. It tracks the vendor, not the size."],
-    ["Everyone has a weak spot","Claude Opus shrugs off injection but still loses <span class='k'>24</span> points when you cut the request down to two words. DeepSeek is the mirror image: strong against injection, worst of the ten on terse prompts (<span class='k'>43</span>). Pick your poison."],
-    ["Newer is not always safer","GPT-5.5 is twice as robust to injection as GPT-5.4, so within a family newer helps. But flagship Gemini-3.1-pro is worse than its own flash model, and tiny Claude Haiku beats both the GPT and Gemini flagships."],
-    ["Nobody falls for \"do not use X\"","The attack you would expect to work, telling the model not to use a tool, does nothing to any of the ten. The ones that land are the dull ones: vague requests and lookalike tool names."],
-  ];
-  document.getElementById("cards").innerHTML=c.map(([h,p])=>`<div class='card'><h3>${h}</h3><p>${p}</p></div>`).join("");
-}
-
+function cards(){ document.getElementById("cards").innerHTML=T[lang].cards.map(([h,p])=>`<div class='card'><h3>${h}</h3><p>${p}</p></div>`).join(""); }
 function variant(){
-  const rows=DATA.variant.rows.map(([a,s,sc])=>[a, +(sc-s).toFixed(1)]).sort((x,y)=>x[1]-y[1]);
+  const rows=DATA.variant.rows.map(([a,s,sc])=>[a,+(sc-s).toFixed(1)]).sort((x,y)=>x[1]-y[1]);
   const max=Math.max(...rows.map(r=>Math.abs(r[1])),1);
-  document.getElementById("variant").innerHTML=rows.map(([a,d])=>{
-    const w=Math.abs(d)/max*100; const good=d>=0; const col=good?"#16a34a":"#dc2626";
-    return `<div class='barrow'><div class='lab'>${a}</div><div class='track'><div class='fill' style='width:${w}%;background:${col}'></div><span class='val'>${d>0?"+":""}${d}</span></div></div>`;
-  }).join("");
+  document.getElementById("variant").innerHTML=rows.map(([a,d])=>{ const w=Math.abs(d)/max*100; const col=d>=0?"#16a34a":"#dc2626";
+    return `<div class='barrow'><div class='lab'>${a}</div><div class='track'><div class='fill' style='width:${w}%;background:${col}'></div><span class='val'>${d>0?"+":""}${d}</span></div></div>`; }).join("");
 }
-
 function multi(){
-  const m=DATA.multistep;
-  const rows=[["1-shot routing",100,"#16a34a"],["multi-step done",m.success,"#0d9488"],["stopped too early",m.premature_stop,"#dc2626"],["never stopped",m.over_run,"#dc2626"]];
-  document.getElementById("multi").innerHTML=rows.map(([l,v,c])=>
-    `<div class='barrow'><div class='lab'>${l}</div><div class='track'><div class='fill' style='width:${v}%;background:${c}'></div><span class='val'>${v}%</span></div></div>`).join("");
+  const m=DATA.multistep; const L=T[lang].multi;
+  const rows=[[L[0],100,"#16a34a"],[L[1],m.success,"#0d9488"],[L[2],m.premature_stop,"#dc2626"],[L[3],m.over_run,"#dc2626"]];
+  document.getElementById("multi").innerHTML=rows.map(([l,v,c])=>`<div class='barrow'><div class='lab'>${l}</div><div class='track'><div class='fill' style='width:${v}%;background:${c}'></div><span class='val'>${v}%</span></div></div>`).join("");
 }
+function render(){
+  const d=T[lang];
+  for(const id of ["h1","tag","to","cap","s1h","s1s","s2h","s3ah","s3as","s3bh","s3bs","s3bc","fp","fc"])
+    document.getElementById("t-"+id).innerHTML = d[id];
+  document.getElementById("lang").textContent = d.lang;
+  document.getElementById("meta").textContent = DATA.generated;
+  document.documentElement.lang = lang;
+  heat(); cards(); variant(); multi();
+}
+render();
 
-document.getElementById("meta").textContent=DATA.generated;
-heat(); cards(); variant(); multi();
-
-const root=document.documentElement, btn=document.getElementById("theme");
-btn.onclick=()=>{ const cur=root.getAttribute("data-theme")|| (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"); root.setAttribute("data-theme", cur==="dark"?"light":"dark"); };
+document.getElementById("lang").onclick=()=>{ lang = lang==="en"?"zh":"en"; render(); };
+const root=document.documentElement;
+document.getElementById("theme").onclick=()=>{ const cur=root.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"); root.setAttribute("data-theme", cur==="dark"?"light":"dark"); };
 </script>
 </body>
 </html>
