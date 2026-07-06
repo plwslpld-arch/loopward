@@ -27,6 +27,11 @@ export const mockProvider: Provider = {
     }
     return { tool: best, raw: `overlap-pick score=${bestScore}` };
   },
+  // deterministic offline stand-in: echo the tool's description as the synthesized intent
+  async generate(prompt) {
+    const m = prompt.match(/description:\s*(.+)/i);
+    return (m?.[1] ?? prompt).trim();
+  },
 };
 
 /**
@@ -38,43 +43,51 @@ export const mockProvider: Provider = {
  */
 export function openaiCompatibleProvider(opts: { name?: string; baseURL: string; apiKey?: string; model: string }): Provider {
   const url = opts.baseURL.replace(/\/+$/, '') + '/chat/completions';
+  const name = opts.name ?? `openai:${opts.model}`;
+
+  async function chat(messages: { role: string; content: string }[], seed: number): Promise<string> {
+    if (!opts.apiKey) throw new Error(`${name}: missing API key (set it in the environment)`);
+    // Some newer/reasoning models reject temperature/seed. Start with them; drop on a 400 that names them.
+    let sampling = true;
+    const mkBody = () => JSON.stringify(sampling ? { model: opts.model, messages, temperature: 0, seed } : { model: opts.model, messages });
+    // ponytail: 4 tries with linear backoff — a single transient blip shouldn't abort a 300-call run.
+    let res: Response | undefined;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.apiKey}` },
+          body: mkBody(),
+        });
+        if (res.ok) break;
+        const text = await res.text();
+        if (res.status === 400 && sampling && /temperature|seed|top_p|sampling/i.test(text)) { sampling = false; continue; }
+        if (res.status < 500 && res.status !== 429) throw new Error(`${opts.model} ${res.status}: ${text}`);
+      } catch (e) {
+        if (attempt === 4) throw e;
+      }
+      await new Promise((r) => setTimeout(r, attempt * 1000));
+    }
+    if (!res || !res.ok) throw new Error(`${opts.model} failed after retries: ${res?.status ?? 'network'}`);
+    const data = (await res.json()) as { choices: { message: { content: string } }[] };
+    return (data.choices?.[0]?.message?.content ?? '').trim();
+  }
+
   return {
-    name: opts.name ?? `openai:${opts.model}`,
+    name,
     async route(intent, candidates, seed): Promise<RouteResult> {
-      if (!opts.apiKey) throw new Error(`${opts.name ?? 'openai'}: missing API key (set it in the environment)`);
       const sys =
         'You are a tool router. Given a user intent and a list of candidate tools, ' +
         'reply with ONLY the exact name of the single best tool. No explanation.';
       const user = `Intent: ${intent}\nCandidates: ${candidates.join(', ')}\nAnswer with one exact candidate name.`;
-      const messages = [{ role: 'system', content: sys }, { role: 'user', content: user }];
-      // Some newer/reasoning models reject temperature/seed. Start with them; drop on a 400 that names them.
-      let sampling = true;
-      const mkBody = () => JSON.stringify(sampling ? { model: opts.model, messages, temperature: 0, seed } : { model: opts.model, messages });
-      // ponytail: 4 tries with linear backoff — a single transient blip shouldn't abort a 300-call run.
-      let res: Response | undefined;
-      for (let attempt = 1; attempt <= 4; attempt++) {
-        try {
-          res = await fetch(url, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.apiKey}` },
-            body: mkBody(),
-          });
-          if (res.ok) break;
-          const text = await res.text();
-          if (res.status === 400 && sampling && /temperature|seed|top_p|sampling/i.test(text)) { sampling = false; continue; }
-          if (res.status < 500 && res.status !== 429) throw new Error(`${opts.model} ${res.status}: ${text}`);
-        } catch (e) {
-          if (attempt === 4) throw e;
-        }
-        await new Promise((r) => setTimeout(r, attempt * 1000));
-      }
-      if (!res || !res.ok) throw new Error(`${opts.model} failed after retries: ${res?.status ?? 'network'}`);
-      const data = (await res.json()) as { choices: { message: { content: string } }[] };
-      const raw = (data.choices?.[0]?.message?.content ?? '').trim();
+      const raw = await chat([{ role: 'system', content: sys }, { role: 'user', content: user }], seed);
       // snap free-text answer to the closest candidate (exact, then substring)
       const exact = candidates.find((c) => c.toLowerCase() === raw.toLowerCase());
       const tool = exact ?? candidates.find((c) => raw.toLowerCase().includes(c.toLowerCase())) ?? raw;
       return { tool, raw };
+    },
+    generate(prompt, seed) {
+      return chat([{ role: 'user', content: prompt }], seed);
     },
   };
 }

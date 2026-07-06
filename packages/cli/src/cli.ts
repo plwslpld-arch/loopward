@@ -6,7 +6,7 @@ import type { RoutingCase } from '../../core/src/types.ts';
 import { getProvider } from '../../core/src/provider.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { runMultistepSuite, type MultistepTask } from '../../core/src/multistep.ts';
-import { loadTools, auditConfusability } from '../../core/src/tools.ts';
+import { loadTools, auditConfusability, synthesizeCases } from '../../core/src/tools.ts';
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
@@ -39,9 +39,17 @@ async function cmdRun(suite: string, provider: string, seed: number, out: string
   console.log(`trajectories → ${outPath}`);
 }
 
-async function cmdAttack(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
-  const cases = loadSuite(suite);
-  const rep = await runAttacks(cases, getProvider(provider, po), seed, undefined, variant);
+async function cmdAttack(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
+  const provider = getProvider(providerName, po);
+  let cases;
+  if (toolsPath) {
+    const tools = loadTools(toolsPath);
+    console.log(`synthesizing ${tools.length} test intents from your tools with ${provider.name}...`);
+    cases = await synthesizeCases(tools, provider, seed);
+  } else {
+    cases = loadSuite(suite!);
+  }
+  const rep = await runAttacks(cases, provider, seed, undefined, variant);
   const outPath = out ?? `runs/attack-${rep.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rep, null, 2));
@@ -129,10 +137,11 @@ async function main() {
   const po: ProviderOpts = { model: values.model, baseURL: values['base-url'] };
   const variant = values.variant as Variant;
   if (variant !== 'single' && variant !== 'self-check') throw new Error(`--variant must be single|self-check, got ${variant}`);
-  if (!values.suite && (cmd === 'run' || cmd === 'attack')) throw new Error('--suite <file.json> is required');
+  if (!values.suite && cmd === 'run') throw new Error('--suite <file.json> is required');
+  if (!values.suite && !values.tools && cmd === 'attack') throw new Error('attack needs --suite <file.json> or --tools <schema.json>');
 
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
-  else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po, variant);
+  else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools); }
   else if (cmd === 'coevo') {
@@ -141,7 +150,7 @@ async function main() {
   } else {
     console.error('usage:');
     console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
-    console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
+    console.error('  loopbench attack --suite <f.json> | --tools <schema.json>  [--provider ...] [--model M] [--variant ...] [--seed 42] [--out f]');
     console.error('  loopbench multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
     console.error('  loopbench audit  --tools <schema.json>   (bring your own tools; no model calls)');
     console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');

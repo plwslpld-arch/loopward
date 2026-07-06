@@ -2,8 +2,27 @@
 // with zero model calls. Point it at your OpenAI/Anthropic tool schema and it tells you which
 // tools a router is likely to mix up before you ship them.
 import { readFileSync } from 'node:fs';
+import type { Provider, RoutingCase } from './types.ts';
 
 export interface Tool { name: string; description: string; }
+
+/** Turn a user's tool catalog into routing test cases: one synthesized intent per tool,
+ *  with the whole catalog as candidates and that tool as ground truth. */
+export async function synthesizeCases(tools: Tool[], provider: Provider, seed: number): Promise<RoutingCase[]> {
+  if (!provider.generate) throw new Error(`provider ${provider.name} can't synthesize intents (no generate())`);
+  const names = tools.map((t) => t.name);
+  const cases: RoutingCase[] = [];
+  for (const t of tools) {
+    const prompt =
+      `A user is talking to an assistant that can call this tool:\n` +
+      `name: ${t.name}\ndescription: ${t.description || '(no description)'}\n\n` +
+      `Write ONE natural, realistic user request (a single sentence) that should be handled by exactly ` +
+      `this tool and no other. Do not mention the tool name. Output only the request.`;
+    const intent = (await provider.generate(prompt, seed)).replace(/^["'\s]+|["'\s]+$/g, '');
+    cases.push({ id: t.name, intent, candidates: names, ground_truth: t.name });
+  }
+  return cases;
+}
 
 /** Accepts OpenAI ([{type:"function",function:{name,description}}]), Anthropic ([{name,description,input_schema}]),
  *  or a flat [{name,description}] list — with or without a { tools: [...] } / { functions: [...] } wrapper. */

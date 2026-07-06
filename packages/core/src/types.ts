@@ -18,6 +18,8 @@ export interface Provider {
   name: string;
   /** Pick exactly one candidate for the given intent. `seed` is recorded for reproducibility. */
   route(intent: string, candidates: string[], seed: number): Promise<RouteResult>;
+  /** Free-text completion, used to synthesize test intents from a user's own tools. */
+  generate?(prompt: string, seed: number): Promise<string>;
 }
 
 export interface Step {
