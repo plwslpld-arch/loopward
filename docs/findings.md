@@ -45,3 +45,33 @@ loopbench attack --suite datasets/routing/tools.json --provider deepseek --seed 
 
 **Next to harden this into a publishable result:** ≥2 models (incl. a non-DeepSeek baseline), ≥3 seeds,
 per-family breakdown, and the `self-check` variant to show whether a reflective loop recovers any of the drop.
+
+---
+
+## F2 — A naive self-check loop does NOT recover routing robustness (and often hurts)
+
+**Setup.** `deepseek-chat`, `tools.json` (n=42), seed 42. Compare `single` vs `self-check` variant. The
+`self-check` variant adds a reflect node: after routing, the model is shown its own pick and asked to
+double-check / switch if a better candidate exists.
+
+| Condition | single acc | self-check acc | Δ (self-check − single) |
+|---|---|---|---|
+| clean | 100.0% | 92.9% | **−7.1pp** |
+| boundary_blur | 71.4% | 59.5% | **−11.9pp** |
+| cross_skill_confusion | 88.1% | 76.2% | **−11.9pp** |
+| negation_trap | 97.6% | 95.2% | −2.4pp |
+| semantic_injection | 76.2% | 78.6% | +2.4pp |
+| multi_intent | 78.6% | 83.3% | +4.8pp |
+| minimal_context | 54.8% | 57.1% | +2.4pp |
+
+**Reading it.** Adding a "reflect and reconsider" node — an intuitively helpful loop upgrade — **degrades**
+routing on the confusion attacks (`boundary_blur`, `cross_skill_confusion`: −11.9pp each) and even lowers
+**clean** accuracy by 7pp. The reflection step second-guesses already-correct routes toward the confusing
+near-duplicate. It helps only marginally, and only on the phrasing attacks. **Net: a plausible harness
+improvement makes robustness worse.** This is the core value of measuring loop-variant robustness rather
+than assuming it — a loop-design choice has a non-obvious, mostly negative effect.
+
+**Caveats.** Single model, single seed, one suite; `self-check` here is a minimal one-shot reflection (not a
+tool-grounded critique). Also note: this run's `single` `minimal_context` = 54.8% vs 57.1% in F1 — the same
+config, showing `deepseek-chat` is not perfectly deterministic at temperature 0 (≈1–2 case run-to-run drift).
+The bootstrap CI captures case-sampling uncertainty but not this model stochasticity — hence the multi-seed TODO.
