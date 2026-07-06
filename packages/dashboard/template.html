@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Loopward: routing robustness</title>
+<title>Loopward: test your agent's routing</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --line: #e5e8ec; --ink: #171b22; --muted: #616b7a;
@@ -12,8 +12,7 @@
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#0b0e14; --panel:#111621; --line:#212836; --ink:#e6edf3; --muted:#8b95a5;
-      --accent:#5eead4; --accent-soft:#5eead41a; --shadow:0 1px 2px #0000, 0 8px 30px #0006; }
+    :root { --bg:#0b0e14; --panel:#111621; --line:#212836; --ink:#e6edf3; --muted:#8b95a5; --accent:#5eead4; --accent-soft:#5eead41a; --shadow:0 1px 2px #0000, 0 8px 30px #0006; }
   }
   :root[data-theme="light"] { --bg:#f6f7f9; --panel:#fff; --line:#e5e8ec; --ink:#171b22; --muted:#616b7a; --accent:#0d9488; --accent-soft:#0d948815; --shadow:0 1px 2px #0000000d, 0 8px 24px #0b0f1408; }
   :root[data-theme="dark"]  { --bg:#0b0e14; --panel:#111621; --line:#212836; --ink:#e6edf3; --muted:#8b95a5; --accent:#5eead4; --accent-soft:#5eead41a; --shadow:0 1px 2px #0000, 0 8px 30px #0006; }
@@ -28,7 +27,7 @@
   header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
   .brand { font-family:var(--mono); font-weight:600; font-size:14px; letter-spacing:.02em; color:var(--accent); }
   h1 { font-size: clamp(28px, 4.5vw, 42px); margin:.15em 0 .1em; }
-  .tagline { color:var(--muted); font-size:17px; max-width:62ch; margin:0 0 4px; }
+  .tagline { color:var(--muted); font-size:17px; max-width:60ch; margin:0 0 4px; }
   .pill { display:inline-block; font-size:12px; font-family:var(--mono); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
   .btns { display:flex; gap:8px; flex:none; }
   .tbtn { border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:8px; padding:6px 10px; font-family:var(--mono); font-size:12px; cursor:pointer; white-space:nowrap; }
@@ -39,9 +38,15 @@
   .hero .cap { color:var(--muted); font-size:15px; }
   .hero .cap b { color:var(--ink); font-weight:600; }
 
-  section { margin-top:40px; }
+  section { margin-top:44px; }
   h2 { font-size:20px; margin:0 0 4px; }
   .sub { color:var(--muted); font-size:14px; margin:0 0 16px; max-width:70ch; }
+
+  .cmds { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .cmd { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
+  .cmd .tag { font-family:var(--mono); font-size:10.5px; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; }
+  .cmd code { font-family:var(--mono); font-size:12px; color:var(--ink); background:var(--accent-soft); padding:9px 11px; border-radius:8px; display:block; overflow-x:auto; white-space:nowrap; margin:8px 0; }
+  .cmd .d { color:var(--muted); font-size:13.5px; margin:0; }
 
   .scroll { overflow-x:auto; border:1px solid var(--line); border-radius:14px; background:var(--panel); box-shadow:var(--shadow); }
   table.heat { border-collapse:collapse; width:100%; font-size:13px; }
@@ -56,7 +61,7 @@
   td.rowlab { border-top:1px solid var(--line); }
 
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:14px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px 18px; box-shadow:var(--shadow); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); }
   .card h3 { margin:0 0 6px; font-size:14px; }
   .card p { margin:0; color:var(--muted); font-size:13.5px; }
   .card .k { font-family:var(--mono); color:var(--accent); font-variant-numeric:tabular-nums; }
@@ -69,7 +74,8 @@
   .track .val { position:absolute; right:8px; font-family:var(--mono); font-size:11.5px; }
 
   .two { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-  @media (max-width:720px){ .hero{grid-template-columns:1fr;} .two{grid-template-columns:1fr;} .barrow{grid-template-columns:120px 1fr;} }
+  .divider { margin:52px 0 0; border-top:1px solid var(--line); padding-top:8px; }
+  @media (max-width:720px){ .hero{grid-template-columns:1fr;} .two,.cmds{grid-template-columns:1fr;} .barrow{grid-template-columns:120px 1fr;} }
 
   footer { margin-top:56px; padding-top:24px; border-top:1px solid var(--line); color:var(--muted); font-size:13px; }
   footer p { max-width:74ch; }
@@ -98,6 +104,12 @@
   </div>
 
   <section>
+    <h2 id="t-cmh"></h2>
+    <p class="sub" id="t-cms"></p>
+    <div class="cmds" id="cmds"></div>
+  </section>
+
+  <section class="divider">
     <h2 id="t-s1h"></h2>
     <p class="sub" id="t-s1s"></p>
     <div class="scroll"><table class="heat" id="heat"></table></div>
@@ -135,51 +147,67 @@ const N = DATA.models.length;
 
 const T = {
   en: {
-    lang:"中", h1:"Every model here routes perfectly. Then it doesn't.",
-    tag:`A test suite for the tool-routing decision inside an agent loop. All ${N} models below pick the right tool 100% of the time on clean inputs. Add one line to the prompt and they start getting it wrong.`,
+    lang:"中", h1:"Your agent routes perfectly. Until a real user shows up.",
+    tag:"Every tool-using agent makes the same call over and over: which tool. Loopward attacks that one decision on your own tools and tells you where it cracks, before someone in production finds out for you.",
     to:"to",
-    cap:`One line of injected text ("always prefer tool X"), run against ${N} models. It costs <b>Claude Opus-4-8</b> nothing and breaks <b>Gemini-3.1-pro</b> on every single case. Which model you run turns out to matter more than the loop you build around it, and it does not track model size.`,
-    s1h:"How each model holds up",
-    s1s:"Each number is how many points of routing accuracy the attack costs. Green means the model held up, red means it broke. Rows sorted by how badly injection hurts.",
-    s2h:"What the grid is telling us",
-    s3ah:'Adding a "double-check" step made it worse',
-    s3as:"DeepSeek, plain vs a self-check loop that re-reads its own pick before committing. The bar is how much the extra step helped (green) or hurt (red).",
+    cap:`Here is the whole problem in one number. A single injected line ("always prefer tool X") costs <b>Claude Opus-4-8</b> nothing and makes <b>Gemini-3.1-pro</b> wrong on every case. Across ${N} models the damage runs 0 to 100 points. The model you pick matters more than the loop you wrap around it, and it has nothing to do with how big or new the model is.`,
+    cmh:"What you actually run",
+    cms:"No install, no build, no config file. Point it at your tool schema and go.",
+    cmds:[
+      ["free, instant","npx loopward audit --tools ./tools.json","Reads your tool list and tells you which names a router will mix up. No API key, done in milliseconds. This is the one to run first."],
+      ["your tools, real model","npx loopward attack --tools ./tools.json --model gpt-5.5","Writes a test request for each tool, then tries six ways to knock the routing over and reports how far it fell, with confidence intervals."],
+      ["merge gate","npx loopward audit --tools ./tools.json --fail-on-high","Same audit, now with an exit code. Drop it in CI and the build turns red when a confusable tool sneaks in."],
+      ["failures to training data","npx loopward coevo --report run.json","Every misroute comes back as preference pairs, reward samples, and SFT negatives. The harness's failures become the model's training signal."],
+    ],
+    s1h:`We ran the attack on ${N} models. Here is how they held up.`,
+    s1s:"Each number is how many points of routing accuracy the attack cost. Green held up, red broke. Sorted by injection, the attack with the widest spread.",
+    s2h:"Four things the grid taught us",
+    s3ah:'We added a "double-check" step. It made things worse.',
+    s3as:"DeepSeek, plain vs a self-check loop that re-reads its own pick before committing. Green means the extra step helped, red means it hurt. It mostly hurt.",
     s3bh:"One good route is not a finished task",
-    s3bs:"DeepSeek routes perfectly in a single turn. Real multi-step tasks are another story, and the harness decides how much.",
-    s3bc:"Feeding the tool result back after each step took success from 10% to 60%. Same model, same tasks. The only thing that changed was the harness.",
-    fp:'Scored with a deterministic ground-truth oracle, no LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, paired bootstrap 95% intervals. Reproduce a row with <code>loopward attack --tools your-tools.json --provider openai --model &lt;name&gt;</code>.',
-    fc:"Read this as a pilot, not a verdict. One seed, one 42-case suite, one gateway (aliases may resolve to specific snapshots). Treat the exact numbers as suite-dependent. What holds up is the ordering between models and the per-model story. This probes routing robustness. It is not a safety audit or a leaderboard.",
+    s3bs:"DeepSeek nails single-turn routing. Give it a real multi-step task and the story changes, and the harness decides by how much.",
+    s3bc:"Feeding the tool result back after each step moved success from 10% to 60%. Same model, same tasks. The only thing that changed was the harness.",
+    fp:'Scored with a deterministic ground-truth oracle, not an LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, paired bootstrap 95% intervals. Reproduce any row with <code>loopward attack --tools your-tools.json --provider openai --model &lt;name&gt;</code>.',
+    fc:"Treat this as a pilot, not a verdict. One seed, one 42-case suite, one gateway that may resolve aliases to specific snapshots. The exact numbers move with the suite. What holds up is the ordering between models and the per-model story. This is a routing-robustness probe, not a safety audit.",
     attack:{ semantic_injection:"injection", minimal_context:"terse prompt", boundary_blur:"lookalike names", multi_intent:"two requests", cross_skill_confusion:"overlapping tools", negation_trap:"do-not-use X" },
     multi:["1-shot routing","multi-step done","stopped too early","never stopped"],
     cards:[
-      ["Robustness runs in families","Anthropic's Claude models resist injection best: Opus loses <span class='k'>0</span>, Sonnet <span class='k'>10</span>, Haiku <span class='k'>40</span>. Everyone else is scattered."],
-      ["DeepSeek is split","<span class='k'>deepseek-chat</span> shrugs off injection (<span class='k'>+24</span>) but <span class='k'>deepseek-v4-pro</span> falls apart (<span class='k'>+74</span>). Robustness is a property of the model, not the brand."],
-      ["Newer is not always safer","OpenAI got safer (GPT-5.4 +98 to 5.5 +50). DeepSeek went the other way (chat +24 to v4-pro +74). You cannot assume the next release is more robust."],
-      ["Nobody falls for \"do not use X\"","The attack you would expect to work does nothing to any model. The ones that land are the dull ones: vague requests and lookalike tool names."],
+      ["Robustness runs in families","Claude resists injection best, top to bottom: Opus loses <span class='k'>0</span>, Sonnet <span class='k'>10</span>, Haiku <span class='k'>40</span>. Every other vendor is all over the map."],
+      ["DeepSeek is two different models","<span class='k'>deepseek-chat</span> barely flinches at injection (<span class='k'>+24</span>). <span class='k'>deepseek-v4-pro</span> falls apart (<span class='k'>+74</span>). Same brand, opposite behavior. The model is the unit, not the logo."],
+      ["Newer is a coin flip","OpenAI got safer with age (GPT-5.4 +98 down to 5.5 +50). DeepSeek got worse (chat +24 up to v4-pro +74). Do not assume the next release fixed anything."],
+      ["Nobody falls for \"do not use X\"","The scary-looking attack does nothing to anyone. The ones that land are dull: a vague request, or two tools with lookalike names."],
     ],
   },
   zh: {
-    lang:"EN", h1:"这些模型选工具都是满分。然后就翻车了。",
-    tag:`一套给 agent loop 里"该调哪个工具"这个决策做的测试。下面 ${N} 个模型在干净输入上选工具都 100% 准。往提示里加一句话,它们就开始选错。`,
+    lang:"EN", h1:"你的 agent 选工具很准。直到来了个真实用户。",
+    tag:"每个用工具的 agent 都在反复做同一个决定:调哪个工具。Loopward 专打这个决定,而且打的是你自己的工具,在生产环境替你踩坑之前,先告诉你它会在哪崩。",
     to:"到",
-    cap:`往上下文里注入一句"优先用工具 X",拿 ${N} 个模型跑。<b>Claude Opus-4-8</b> 毫发无伤,<b>Gemini-3.1-pro</b> 每道都错。你用哪个模型,比你在外面套什么 loop 更决定成败,而且这跟模型大小无关。`,
-    s1h:"各模型扛得怎么样",
-    s1s:"每个数字是这类攻击让路由准确率掉了多少分。绿的扛住了,红的崩了。行按注入的伤害排序。",
-    s2h:"这张表说明了什么",
-    s3ah:'加个"再确认"反而更糟',
-    s3as:"DeepSeek,普通跑 vs 一个 self-check 循环(提交前先复查自己的选择)。柱子是这一步帮了忙(绿)还是帮了倒忙(红)。",
+    cap:`一个数字说清整件事。往上下文注入一句"优先用工具 X",Claude Opus-4-8 毫发无伤,Gemini-3.1-pro 每道都错。${N} 个模型里,伤害从 0 到 100 分不等。你选哪个模型,比你在外面套什么 loop 更要紧,而且跟模型多大多新没关系。`,
+    cmh:"你实际要跑的命令",
+    cms:"不用装、不用编译、不用配置文件。指向你的工具 schema,跑就完了。",
+    cmds:[
+      ["免费,秒出","npx loopward audit --tools ./tools.json","读你的工具清单,告诉你哪些名字会被路由器搞混。不用 API key,毫秒级出结果。先跑这个。"],
+      ["你的工具,真模型","npx loopward attack --tools ./tools.json --model gpt-5.5","给每个工具写一条测试请求,再用六种方式尝试打崩路由,带置信区间告诉你掉了多少。"],
+      ["合并门","npx loopward audit --tools ./tools.json --fail-on-high","同样的审计,加了退出码。塞进 CI,一有混淆工具溜进来,构建就变红。"],
+      ["失败变训练数据","npx loopward coevo --report run.json","每一次选错都变回偏好对、奖励样本、SFT 负样本。harness 的失败,成了模型的训练信号。"],
+    ],
+    s1h:`我们拿这套攻击跑了 ${N} 个模型,结果如下。`,
+    s1s:"每个数字是这类攻击让路由准确率掉了多少分。绿的扛住了,红的崩了。按注入排序,它的差距最大。",
+    s2h:"这张表告诉我们四件事",
+    s3ah:'我们加了个"再确认"步骤,结果更糟了。',
+    s3as:"DeepSeek,普通跑 vs 一个提交前先复查自己选择的 self-check 循环。绿=帮了忙,红=帮了倒忙。大多数时候是倒忙。",
     s3bh:"选对一步,不等于任务完成",
-    s3bs:"DeepSeek 单步选工具满分。真实的多步任务是另一回事,而且 harness 决定差多少。",
+    s3bs:"DeepSeek 单步选工具满分。给它一个真实的多步任务,情况就变了,而且 harness 决定变多少。",
     s3bc:"每步把工具结果回传给模型,成功率从 10% 提到 60%。同一个模型、同样的任务,变的只有 harness。",
-    fp:'用确定性 ground-truth 判分,不用 LLM 当裁判。42 条用例、10 个工具族,temperature 0,seed 42,配对 bootstrap 95% 区间。复现一行:<code>loopward attack --tools your-tools.json --provider openai --model &lt;名字&gt;</code>。',
-    fc:"当它是 pilot,不是定论。单 seed、单 42 条用例、单网关(别名可能指向特定快照)。具体数值随用例集变。站得住的是模型之间的排序和 per-model 的故事。这是路由鲁棒性的探针,不是安全审计,也不是排行榜。",
+    fp:'用确定性 ground-truth 判分,不用 LLM 当裁判。42 条用例、10 个工具族,temperature 0,seed 42,配对 bootstrap 95% 区间。任意一行都可复现:<code>loopward attack --tools your-tools.json --provider openai --model &lt;名字&gt;</code>。',
+    fc:"当它是 pilot,不是定论。单 seed、单 42 条用例、单网关(别名可能指向特定快照)。具体数值随用例集变。站得住的是模型之间的排序和 per-model 的故事。这是路由鲁棒性的探针,不是安全审计。",
     attack:{ semantic_injection:"注入", minimal_context:"话太短", boundary_blur:"撞名工具", multi_intent:"两件事", cross_skill_confusion:"功能重叠", negation_trap:"否定 X" },
     multi:["单步路由","多步完成","停太早","停不下来"],
     cards:[
-      ["鲁棒性按家族走","Anthropic 的 Claude 系最抗注入:Opus 掉 <span class='k'>0</span>、Sonnet <span class='k'>10</span>、Haiku <span class='k'>40</span>。其他家都很散。"],
-      ["DeepSeek 一分为二","<span class='k'>deepseek-chat</span> 扛得住注入(<span class='k'>+24</span>),但 <span class='k'>deepseek-v4-pro</span> 崩了(<span class='k'>+74</span>)。鲁棒是模型的属性,不是牌子的。"],
-      ["越新不一定越安全","OpenAI 变稳了(GPT-5.4 +98 → 5.5 +50)。DeepSeek 反着走(chat +24 → v4-pro +74)。别默认下一代更抗打。"],
-      ["没人上\"别用 X\"的当","你以为好使的那个攻击对谁都没用。真咬人的是最无聊的:话说得糊、工具名撞脸。"],
+      ["鲁棒性按家族走","Claude 从上到下都最抗注入:Opus 掉 <span class='k'>0</span>、Sonnet <span class='k'>10</span>、Haiku <span class='k'>40</span>。其他厂商全是乱的。"],
+      ["DeepSeek 是两个不同的模型","<span class='k'>deepseek-chat</span> 对注入几乎无动于衷(<span class='k'>+24</span>),<span class='k'>deepseek-v4-pro</span> 却崩了(<span class='k'>+74</span>)。同一个牌子,相反的表现。看模型,别看 logo。"],
+      ["越新是抛硬币","OpenAI 越新越稳(GPT-5.4 +98 → 5.5 +50)。DeepSeek 反过来(chat +24 → v4-pro +74)。别默认下一代修好了什么。"],
+      ["没人上\"别用 X\"的当","那个看着吓人的攻击对谁都没用。真咬人的很无聊:一句含糊的话,或者两个撞名的工具。"],
     ],
   },
 };
@@ -188,6 +216,7 @@ let lang = (navigator.language || "en").startsWith("zh") ? "zh" : "en";
 
 function sev(v){ const t=Math.max(0,Math.min(100,v))/100; const hue = 145 - 145*t; const l = 34 + 6*Math.sin(t*Math.PI); return `hsl(${hue.toFixed(0)} 62% ${l.toFixed(0)}%)`; }
 
+function cmds(){ document.getElementById("cmds").innerHTML=T[lang].cmds.map(([tag,c,d])=>`<div class='cmd'><div class='tag'>${tag}</div><code>${c}</code><p class='d'>${d}</p></div>`).join(""); }
 function heat(){
   const t=document.getElementById("heat"); const A=DATA.attacks; const AL=T[lang].attack;
   let h="<thead><tr><th class='model'>model</th>"+A.map(a=>`<th>${AL[a]}</th>`).join("")+"</tr></thead><tbody>";
@@ -212,12 +241,12 @@ function multi(){
 }
 function render(){
   const d=T[lang];
-  for(const id of ["h1","tag","to","cap","s1h","s1s","s2h","s3ah","s3as","s3bh","s3bs","s3bc","fp","fc"])
+  for(const id of ["h1","tag","to","cap","cmh","cms","s1h","s1s","s2h","s3ah","s3as","s3bh","s3bs","s3bc","fp","fc"])
     document.getElementById("t-"+id).innerHTML = d[id];
   document.getElementById("lang").textContent = d.lang;
   document.getElementById("meta").textContent = DATA.generated;
   document.documentElement.lang = lang;
-  heat(); cards(); variant(); multi();
+  cmds(); heat(); cards(); variant(); multi();
 }
 render();
 
