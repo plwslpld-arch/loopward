@@ -21,7 +21,7 @@ export interface Provider {
 }
 
 export interface Step {
-  node: 'perceive' | 'route' | 'act' | 'verify' | 'stop';
+  node: 'perceive' | 'route' | 'reflect' | 'act' | 'verify' | 'stop';
   [k: string]: unknown;
 }
 

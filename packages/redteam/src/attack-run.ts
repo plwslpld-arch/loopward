@@ -1,5 +1,5 @@
 import type { Provider, RoutingCase } from '../../core/src/types.ts';
-import { runSuite } from '../../core/src/loop.ts';
+import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { ATTACKS, type Attack } from './attacks.ts';
 import { bootstrapDeltaCI, mean, type DeltaCI } from './metrics.ts';
 
@@ -24,6 +24,7 @@ export interface Failure {
 export interface AttackReport {
   provider: string;
   seed: number;
+  variant: Variant;
   total: number;
   clean_accuracy: number;
   attacks: AttackResult[];
@@ -40,8 +41,9 @@ export async function runAttacks(
   provider: Provider,
   seed: number,
   attacks: Attack[] = ATTACKS,
+  variant: Variant = 'single',
 ): Promise<AttackReport> {
-  const clean = await runSuite(cases, provider, seed);
+  const clean = await runSuite(cases, provider, seed, variant);
   const cleanBy = new Map(clean.trajectories.map((t) => [t.caseId, bit(t.correct)]));
   const cleanArr = cases.map((c) => cleanBy.get(c.id) ?? 0);
 
@@ -51,7 +53,7 @@ export async function runAttacks(
   const results: AttackResult[] = [];
   for (const atk of attacks) {
     const perturbed = cases.map((c) => atk.apply(c));
-    const run = await runSuite(perturbed, provider, seed);
+    const run = await runSuite(perturbed, provider, seed, variant);
     const by = new Map(run.trajectories.map((t) => [t.caseId, bit(t.correct)]));
     const attackArr = cases.map((c) => by.get(c.id) ?? 0);
     matrix.forEach((row, i) => (row[atk.name] = attackArr[i]));
@@ -74,6 +76,7 @@ export async function runAttacks(
   return {
     provider: provider.name,
     seed,
+    variant,
     total: cases.length,
     clean_accuracy: mean(cleanArr),
     attacks: results,

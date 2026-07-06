@@ -27,9 +27,18 @@ assert.equal(r1.total, 3);
 assert.equal(r1.trajectories[0].correct, true);
 assert.equal(r1.trajectories[1].correct, true);
 
-// every trajectory walks all 5 loop nodes
+// single variant walks the 5 core nodes
 for (const t of r1.trajectories) {
   assert.deepEqual(t.steps.map((s) => s.node), ['perceive', 'route', 'act', 'verify', 'stop']);
 }
 
-console.log(`selfcheck OK — mock accuracy ${(r1.accuracy * 100).toFixed(1)}% on ${r1.total} cases`);
+// self-check variant inserts a reflect node (extra decision point)
+const sc = await runSuite(suite, mockProvider, 42, 'self-check');
+assert.equal(sc.variant, 'self-check');
+for (const t of sc.trajectories) {
+  assert.deepEqual(t.steps.map((s) => s.node), ['perceive', 'route', 'reflect', 'act', 'verify', 'stop']);
+  const reflect = t.steps.find((s) => s.node === 'reflect')!;
+  assert.equal(typeof reflect.changed, 'boolean');
+}
+
+console.log(`selfcheck OK — single ${(r1.accuracy * 100).toFixed(1)}% / self-check ${(sc.accuracy * 100).toFixed(1)}% on ${r1.total} cases`);

@@ -4,7 +4,7 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { RoutingCase } from '../../core/src/types.ts';
 import { getProvider } from '../../core/src/provider.ts';
-import { runSuite } from '../../core/src/loop.ts';
+import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
@@ -26,25 +26,25 @@ const pp = (x: number) => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + 'pp';
 
 interface ProviderOpts { model?: string; baseURL?: string }
 
-async function cmdRun(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
+async function cmdRun(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
   const cases = loadSuite(suite);
-  const summary = await runSuite(cases, getProvider(provider, po), seed);
-  const outPath = out ?? `runs/${summary.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.jsonl`;
+  const summary = await runSuite(cases, getProvider(provider, po), seed, variant);
+  const outPath = out ?? `runs/${summary.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.jsonl`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, summary.trajectories.map((t) => JSON.stringify(t)).join('\n') + '\n');
-  console.log(`provider=${summary.provider} seed=${seed}`);
+  console.log(`provider=${summary.provider} variant=${variant} seed=${seed}`);
   console.log(`clean routing accuracy: ${summary.correct}/${summary.total} = ${pct(summary.accuracy)}`);
   console.log(`trajectories → ${outPath}`);
 }
 
-async function cmdAttack(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
+async function cmdAttack(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
   const cases = loadSuite(suite);
-  const rep = await runAttacks(cases, getProvider(provider, po), seed);
-  const outPath = out ?? `runs/attack-${rep.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
+  const rep = await runAttacks(cases, getProvider(provider, po), seed, undefined, variant);
+  const outPath = out ?? `runs/attack-${rep.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rep, null, 2));
 
-  console.log(`provider=${rep.provider} seed=${seed}  n=${rep.total}`);
+  console.log(`provider=${rep.provider} variant=${variant} seed=${seed}  n=${rep.total}`);
   console.log(`clean routing accuracy: ${pct(rep.clean_accuracy)}\n`);
   console.log('attack                  acc     misroute   robustness_delta (95% CI)');
   console.log('─'.repeat(74));
@@ -82,22 +82,25 @@ async function main() {
       seed: { type: 'string', default: '42' },
       out: { type: 'string', short: 'o' },
       report: { type: 'string', short: 'r' },
+      variant: { type: 'string', short: 'v', default: 'single' },
     },
   });
   const cmd = positionals[0];
   const seed = Number(values.seed);
   const po: ProviderOpts = { model: values.model, baseURL: values['base-url'] };
+  const variant = values.variant as Variant;
+  if (variant !== 'single' && variant !== 'self-check') throw new Error(`--variant must be single|self-check, got ${variant}`);
   if (!values.suite && (cmd === 'run' || cmd === 'attack')) throw new Error('--suite <file.json> is required');
 
-  if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po);
-  else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po);
+  if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
+  else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
   } else {
     console.error('usage:');
-    console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--base-url URL] [--seed 42] [--out f]');
-    console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--base-url URL] [--seed 42] [--out f]');
+    console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
+    console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
     console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');
     console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
     process.exit(1);
