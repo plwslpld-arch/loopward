@@ -51,13 +51,19 @@ Anthropic's `{ name, description, input_schema }` array and a plain `[{ name, de
 - **attack** synthesizes a test intent per tool, then perturbs it six ways (injection, terse phrasing, lookalike
   names, two-in-one requests, overlapping tools, negation) and reports how far accuracy falls, with a paired
   bootstrap 95% interval. Scoring is a deterministic ground-truth oracle, not an LLM judge.
+- **fix** turns the diagnostic into a controller. For the tools whose names a router confuses, it proposes a
+  clearer rename (model-made suggestion), re-runs the identical attacked suite through the same deterministic
+  oracle, and reports the verified before-and-after delta. The suggestion is model-made; the re-measurement is not.
 - **multi** runs a real multi-step loop and scores the failures single-turn routing can't see: stopping too
   early, never stopping, wrong step.
 - **coevo** exports every misroute as preference pairs, verifiable-reward samples, and SFT negatives. This is the
   model-and-harness co-evolution loop: the harness's failures become the model's training signal.
 
-Works with any OpenAI-compatible endpoint. Keys and base URLs come from the environment, so nothing secret lives
-in the repo. Point `OPENAI_BASE_URL` at your gateway of choice.
+Works with any OpenAI-compatible endpoint. Presets (`openai`, `deepseek`, `openrouter`, `groq`, `dmx`, and more)
+bake in the base URL; anything else works with `--provider openai --base-url <url>`. Keys come from the
+environment, one variable per provider, so nothing secret lives in the repo. Full list and examples in
+[`docs/providers.md`](./docs/providers.md). Not sure which flags you need? Run `npx loopward` with no command for
+a guided setup.
 
 ## Gate it in CI
 
