@@ -16,8 +16,9 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 - ✅ metrics: accuracy / misroute_rate / robustness_delta + paired bootstrap 95% CI (seeded, reproducible). (over-run / premature-stop need multi-step → W3.)
 - ✅ `loopbench attack` → per-attack acc + delta + CI table, heatmap-ready matrix (attack × case) JSON.
 - ⏭️ `self-check` variant deferred to W3: with the mock a 2nd variant is contrived; it's only a meaningful comparison against a reasoning provider.
-- ⚠️ **Not yet the finding.** Mock numbers only prove the pipeline (mock is a fragile token-overlap stand-in, so deltas are huge). The publishable, counter-intuitive finding needs a **real-model run** (`--provider deepseek`, needs `DEEPSEEK_API_KEY`). Do that before any public post.
-- **Verify (done):** `loopbench attack --suite datasets/routing/sample.json` → 6-row delta+CI table.
+- ✅ **First real finding (F1, see docs/findings.md).** `deepseek-chat` on the 42-case `tools.json`: 100% clean, but 5/6 attacks drop it 12–43pp with CIs excluding zero. Counter-intuitive ranking: `minimal_context` + `boundary_blur` dominate; `negation_trap` is null. Pilot-grade (1 model / 1 seed / 1 suite).
+- **Verify (done):** `loopbench attack --suite datasets/routing/tools.json --provider deepseek` → 6-row delta+CI table + docs/findings.md.
+- 🔜 To make F1 publishable: ≥2 models + ≥3 seeds + per-family breakdown + the `self-check` variant (moved here from the deferred list).
 
 ## W3 — 2nd variant + co-evolution loop + portability  (the soul — do not cut)
 - `variants`: `planner-subagent` (dispatch = prime `cross_skill_confusion` surface).

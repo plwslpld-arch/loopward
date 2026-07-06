@@ -46,17 +46,29 @@ export function deepseekProvider(opts: { model?: string; apiKey?: string } = {})
         'You are a tool router. Given a user intent and a list of candidate tools, ' +
         'reply with ONLY the exact name of the single best tool. No explanation.';
       const user = `Intent: ${intent}\nCandidates: ${candidates.join(', ')}\nAnswer with one exact candidate name.`;
-      const res = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
-          temperature: 0,
-          seed,
-        }),
+      const body = JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
+        temperature: 0,
+        seed,
       });
-      if (!res.ok) throw new Error(`deepseek ${res.status}: ${await res.text()}`);
+      // ponytail: 3 tries with linear backoff — a single transient blip shouldn't abort a 300-call run.
+      let res: Response | undefined;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          res = await fetch('https://api.deepseek.com/chat/completions', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+            body,
+          });
+          if (res.ok) break;
+          if (res.status < 500 && res.status !== 429) throw new Error(`deepseek ${res.status}: ${await res.text()}`);
+        } catch (e) {
+          if (attempt === 3) throw e;
+        }
+        await new Promise((r) => setTimeout(r, attempt * 1000));
+      }
+      if (!res || !res.ok) throw new Error(`deepseek failed after retries: ${res?.status ?? 'network'}`);
       const data = (await res.json()) as { choices: { message: { content: string } }[] };
       const raw = (data.choices?.[0]?.message?.content ?? '').trim();
       // snap the free-text answer to the closest candidate (exact, then substring)

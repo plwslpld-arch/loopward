@@ -1,0 +1,59 @@
+{
+  "meta": {
+    "name": "tools-v1",
+    "note": "40 hand-authored routing cases across 10 realistic tool families. Each intent has one defensible ground-truth tool. Families deliberately contain near-duplicate names (get_weather vs get_forecast vs get_weather_history; list vs create vs cancel) so boundary_blur / cross_skill_confusion have real purchase. Intents are phrased naturally, not keyword-stuffed, so a strong model is not at ceiling."
+  },
+  "cases": [
+    { "id": "wx-01", "intent": "What's the temperature in Berlin right now?",                    "candidates": ["get_weather", "get_forecast", "get_air_quality", "get_weather_history"], "ground_truth": "get_weather" },
+    { "id": "wx-02", "intent": "Should I bring an umbrella to London tomorrow?",                  "candidates": ["get_weather", "get_forecast", "get_air_quality", "get_weather_history"], "ground_truth": "get_forecast" },
+    { "id": "wx-03", "intent": "Is the smog bad in Delhi today?",                                 "candidates": ["get_weather", "get_forecast", "get_air_quality", "get_weather_history"], "ground_truth": "get_air_quality" },
+    { "id": "wx-04", "intent": "How hot was it in Cairo last July?",                              "candidates": ["get_weather", "get_forecast", "get_air_quality", "get_weather_history"], "ground_truth": "get_weather_history" },
+
+    { "id": "msg-01", "intent": "Send Priya the signed contract as an attachment",               "candidates": ["send_email", "send_slack_message", "send_sms", "post_to_channel"], "ground_truth": "send_email" },
+    { "id": "msg-02", "intent": "DM Priya on Slack that the build is green",                      "candidates": ["send_email", "send_slack_message", "send_sms", "post_to_channel"], "ground_truth": "send_slack_message" },
+    { "id": "msg-03", "intent": "Text the on-call engineer that prod is down",                    "candidates": ["send_email", "send_slack_message", "send_sms", "post_to_channel"], "ground_truth": "send_sms" },
+    { "id": "msg-04", "intent": "Announce the release in the #general channel",                   "candidates": ["send_email", "send_slack_message", "send_sms", "post_to_channel"], "ground_truth": "post_to_channel" },
+
+    { "id": "cal-01", "intent": "Put a 30-minute sync with Sam on my calendar for Friday",       "candidates": ["create_calendar_event", "list_calendar_events", "cancel_calendar_event", "find_free_slot"], "ground_truth": "create_calendar_event" },
+    { "id": "cal-02", "intent": "What meetings do I have next Monday?",                           "candidates": ["create_calendar_event", "list_calendar_events", "cancel_calendar_event", "find_free_slot"], "ground_truth": "list_calendar_events" },
+    { "id": "cal-03", "intent": "Drop my 2pm standup tomorrow",                                   "candidates": ["create_calendar_event", "list_calendar_events", "cancel_calendar_event", "find_free_slot"], "ground_truth": "cancel_calendar_event" },
+    { "id": "cal-04", "intent": "When are Sam and I both free this week?",                        "candidates": ["create_calendar_event", "list_calendar_events", "cancel_calendar_event", "find_free_slot"], "ground_truth": "find_free_slot" },
+
+    { "id": "srch-01", "intent": "Find recent news about the EU AI Act",                          "candidates": ["search_web", "search_codebase", "search_docs", "search_issues"], "ground_truth": "search_web" },
+    { "id": "srch-02", "intent": "Where is the retry logic defined in our repo?",                "candidates": ["search_web", "search_codebase", "search_docs", "search_issues"], "ground_truth": "search_codebase" },
+    { "id": "srch-03", "intent": "Look up how to configure the rate limiter in the SDK docs",    "candidates": ["search_web", "search_codebase", "search_docs", "search_issues"], "ground_truth": "search_docs" },
+    { "id": "srch-04", "intent": "Has anyone already reported this crash on our tracker?",       "candidates": ["search_web", "search_codebase", "search_docs", "search_issues"], "ground_truth": "search_issues" },
+
+    { "id": "gh-01", "intent": "File a bug: login button does nothing on Safari",                 "candidates": ["create_github_issue", "list_github_issues", "close_github_issue", "comment_on_issue", "create_pull_request"], "ground_truth": "create_github_issue" },
+    { "id": "gh-02", "intent": "Show me every open issue labeled 'p0'",                           "candidates": ["create_github_issue", "list_github_issues", "close_github_issue", "comment_on_issue", "create_pull_request"], "ground_truth": "list_github_issues" },
+    { "id": "gh-03", "intent": "Mark issue #482 as resolved",                                     "candidates": ["create_github_issue", "list_github_issues", "close_github_issue", "comment_on_issue", "create_pull_request"], "ground_truth": "close_github_issue" },
+    { "id": "gh-04", "intent": "Add a note on issue #482 that I can't reproduce it",              "candidates": ["create_github_issue", "list_github_issues", "close_github_issue", "comment_on_issue", "create_pull_request"], "ground_truth": "comment_on_issue" },
+    { "id": "gh-05", "intent": "Open a PR from my feature branch into main",                      "candidates": ["create_github_issue", "list_github_issues", "close_github_issue", "comment_on_issue", "create_pull_request"], "ground_truth": "create_pull_request" },
+
+    { "id": "fs-01", "intent": "Show me what's inside config/settings.yaml",                      "candidates": ["read_file", "write_file", "delete_file", "list_directory", "move_file"], "ground_truth": "read_file" },
+    { "id": "fs-02", "intent": "Save this JSON to output/result.json",                            "candidates": ["read_file", "write_file", "delete_file", "list_directory", "move_file"], "ground_truth": "write_file" },
+    { "id": "fs-03", "intent": "Get rid of the old temp.log file",                                "candidates": ["read_file", "write_file", "delete_file", "list_directory", "move_file"], "ground_truth": "delete_file" },
+    { "id": "fs-04", "intent": "What files are in the src/utils folder?",                         "candidates": ["read_file", "write_file", "delete_file", "list_directory", "move_file"], "ground_truth": "list_directory" },
+    { "id": "fs-05", "intent": "Rename draft.md to final.md",                                     "candidates": ["read_file", "write_file", "delete_file", "list_directory", "move_file"], "ground_truth": "move_file" },
+
+    { "id": "fin-01", "intent": "How many euros is 250 dollars?",                                 "candidates": ["convert_currency", "get_stock_price", "get_crypto_price", "get_exchange_rate"], "ground_truth": "convert_currency" },
+    { "id": "fin-02", "intent": "What's Nvidia trading at?",                                      "candidates": ["convert_currency", "get_stock_price", "get_crypto_price", "get_exchange_rate"], "ground_truth": "get_stock_price" },
+    { "id": "fin-03", "intent": "What's the price of Bitcoin right now?",                         "candidates": ["convert_currency", "get_stock_price", "get_crypto_price", "get_exchange_rate"], "ground_truth": "get_crypto_price" },
+    { "id": "fin-04", "intent": "What's today's USD to JPY rate?",                                "candidates": ["convert_currency", "get_stock_price", "get_crypto_price", "get_exchange_rate"], "ground_truth": "get_exchange_rate" },
+
+    { "id": "txt-01", "intent": "Put this paragraph into Spanish",                                "candidates": ["translate_text", "summarize_text", "proofread_text", "expand_text"], "ground_truth": "translate_text" },
+    { "id": "txt-02", "intent": "Give me a two-sentence TL;DR of this article",                  "candidates": ["translate_text", "summarize_text", "proofread_text", "expand_text"], "ground_truth": "summarize_text" },
+    { "id": "txt-03", "intent": "Fix the grammar and typos in my cover letter",                  "candidates": ["translate_text", "summarize_text", "proofread_text", "expand_text"], "ground_truth": "proofread_text" },
+    { "id": "txt-04", "intent": "Flesh out these bullet points into full paragraphs",           "candidates": ["translate_text", "summarize_text", "proofread_text", "expand_text"], "ground_truth": "expand_text" },
+
+    { "id": "data-01", "intent": "Get me total signups per month from the users table",          "candidates": ["run_sql_query", "export_csv", "create_chart", "filter_dataset"], "ground_truth": "run_sql_query" },
+    { "id": "data-02", "intent": "Download the results as a spreadsheet file",                    "candidates": ["run_sql_query", "export_csv", "create_chart", "filter_dataset"], "ground_truth": "export_csv" },
+    { "id": "data-03", "intent": "Plot the monthly signups as a bar graph",                       "candidates": ["run_sql_query", "export_csv", "create_chart", "filter_dataset"], "ground_truth": "create_chart" },
+    { "id": "data-04", "intent": "Keep only the rows where country is Japan",                     "candidates": ["run_sql_query", "export_csv", "create_chart", "filter_dataset"], "ground_truth": "filter_dataset" },
+
+    { "id": "ops-01", "intent": "Ship the payments service to production",                        "candidates": ["deploy_service", "rollback_deploy", "restart_service", "view_logs", "scale_service"], "ground_truth": "deploy_service" },
+    { "id": "ops-02", "intent": "The last release is broken, go back to the previous version",    "candidates": ["deploy_service", "rollback_deploy", "restart_service", "view_logs", "scale_service"], "ground_truth": "rollback_deploy" },
+    { "id": "ops-03", "intent": "Bounce the auth service, it's stuck",                            "candidates": ["deploy_service", "rollback_deploy", "restart_service", "view_logs", "scale_service"], "ground_truth": "restart_service" },
+    { "id": "ops-04", "intent": "Pull up the error logs for the checkout service",               "candidates": ["deploy_service", "rollback_deploy", "restart_service", "view_logs", "scale_service"], "ground_truth": "view_logs" }
+  ]
+}
