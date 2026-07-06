@@ -39,7 +39,7 @@ async function cmdRun(suite: string, provider: string, seed: number, out: string
   console.log(`trajectories → ${outPath}`);
 }
 
-async function cmdAttack(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
+async function cmdAttack(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant, failUnder?: number) {
   const provider = getProvider(providerName, po);
   let cases;
   if (toolsPath) {
@@ -66,6 +66,16 @@ async function cmdAttack(suite: string | undefined, toolsPath: string | undefine
     );
   }
   console.log(`\nfull report → ${outPath}`);
+
+  if (failUnder !== undefined) {
+    const worst = rep.attacks.reduce((m, a) => Math.min(m, a.accuracy), 1);
+    const worstAttack = rep.attacks.find((a) => a.accuracy === worst);
+    if (worst * 100 < failUnder) {
+      console.error(`\nFAIL: worst attacked accuracy ${pct(worst)} (${worstAttack?.attack}) is under --fail-under ${failUnder}%`);
+      process.exit(1);
+    }
+    console.log(`gate ok: worst attacked accuracy ${pct(worst)} >= ${failUnder}%`);
+  }
 }
 
 async function cmdCoevo(reportPath: string, outDir: string) {
@@ -81,7 +91,7 @@ async function cmdCoevo(reportPath: string, outDir: string) {
   }
 }
 
-async function cmdMulti(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
+async function cmdMulti(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts, failUnder?: number) {
   const data = JSON.parse(readFileSync(suite, 'utf8'));
   const tasks: MultistepTask[] = Array.isArray(data) ? data : data.tasks;
   if (!Array.isArray(tasks)) throw new Error(`suite ${suite}: expected tasks[] (or { tasks: [...] })`);
@@ -100,9 +110,17 @@ async function cmdMulti(suite: string, provider: string, seed: number, out: stri
   console.log(`over-run:          ${pct(sum.over_run_rate)}`);
   console.log(`avg extra calls:   ${sum.avg_extra_calls.toFixed(2)}`);
   console.log(`results → ${outPath}`);
+
+  if (failUnder !== undefined) {
+    if (sum.success_rate * 100 < failUnder) {
+      console.error(`\nFAIL: multi-step success ${pct(sum.success_rate)} is under --fail-under ${failUnder}%`);
+      process.exit(1);
+    }
+    console.log(`gate ok: multi-step success ${pct(sum.success_rate)} >= ${failUnder}%`);
+  }
 }
 
-function cmdAudit(toolsPath: string) {
+function cmdAudit(toolsPath: string, failOnHigh?: boolean) {
   const tools = loadTools(toolsPath);
   const pairs = auditConfusability(tools);
   console.log(`audited ${tools.length} tools, found ${pairs.length} confusable pair(s) (no model calls)\n`);
@@ -115,6 +133,11 @@ function cmdAudit(toolsPath: string) {
     console.log(`${risk}  ${pair.slice(0, 42).padEnd(42)}  ${p.sharedTokens.join(', ') || '(similar descriptions)'}`);
   }
   console.log(`\nthese pairs are the ones a router is most likely to mix up. rename, merge, or disambiguate descriptions.`);
+  const high = pairs.filter((p) => p.score >= 0.5);
+  if (failOnHigh && high.length) {
+    console.error(`\nFAIL: ${high.length} HIGH-risk confusable pair(s) with --fail-on-high set`);
+    process.exit(1);
+  }
 }
 
 async function main() {
@@ -130,6 +153,8 @@ async function main() {
       report: { type: 'string', short: 'r' },
       variant: { type: 'string', short: 'v', default: 'single' },
       tools: { type: 'string', short: 't' },
+      'fail-under': { type: 'string' },
+      'fail-on-high': { type: 'boolean' },
     },
   });
   const cmd = positionals[0];
@@ -140,10 +165,12 @@ async function main() {
   if (!values.suite && cmd === 'run') throw new Error('--suite <file.json> is required');
   if (!values.suite && !values.tools && cmd === 'attack') throw new Error('attack needs --suite <file.json> or --tools <schema.json>');
 
+  const failUnder = values['fail-under'] !== undefined ? Number(values['fail-under']) : undefined;
+
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
-  else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
-  else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po);
-  else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools); }
+  else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant, failUnder);
+  else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
+  else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');

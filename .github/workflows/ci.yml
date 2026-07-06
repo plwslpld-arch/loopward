@@ -1,0 +1,20 @@
+name: ci
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24" # native TS type-stripping, no build step
+      - name: self-checks (offline, mock provider, no API keys)
+        run: |
+          node packages/core/src/selfcheck.ts
+          node packages/redteam/src/selfcheck.ts
+          node packages/coevo/src/selfcheck.ts
+      - name: tool-audit smoke
+        run: node packages/cli/src/cli.ts audit --tools datasets/tools/sample-tools.json
