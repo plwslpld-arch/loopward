@@ -3,6 +3,8 @@
   Working title "Loopward" is pending a name-collision check before any public launch.
 -->
 
+<img src="assets/logo.png" width="88" align="left" alt="Loopward logo" />
+
 # Loopward
 
 Point it at your agent's tools and it tells you which ones the router will mix up, how badly a one-line

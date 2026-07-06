@@ -2,12 +2,14 @@
 import { parseArgs } from 'node:util';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
+import { createInterface } from 'node:readline/promises';
 import type { RoutingCase } from '../../core/src/types.ts';
-import { getProvider } from '../../core/src/provider.ts';
+import { getProvider, PROVIDER_NAMES } from '../../core/src/provider.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { runMultistepSuite, type MultistepTask } from '../../core/src/multistep.ts';
-import { loadTools, auditConfusability, synthesizeCases } from '../../core/src/tools.ts';
+import { loadTools, auditConfusability, synthesizeCases, type Tool } from '../../core/src/tools.ts';
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
+import { runFix } from '../../redteam/src/fix.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
 function loadSuite(path: string): RoutingCase[] {
@@ -78,6 +80,44 @@ async function cmdAttack(suite: string | undefined, toolsPath: string | undefine
   }
 }
 
+async function cmdFix(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, variant: Variant) {
+  const provider = getProvider(providerName, po);
+  let tools: Tool[];
+  let cases: RoutingCase[];
+  if (toolsPath) {
+    tools = loadTools(toolsPath);
+    console.log(`synthesizing ${tools.length} test intents from your tools with ${provider.name}...`);
+    cases = await synthesizeCases(tools, provider, seed);
+  } else {
+    cases = loadSuite(suite!);
+    // no descriptions in a bare suite; derive a name-only catalog so the audit can still run
+    tools = [...new Set(cases.flatMap((c) => c.candidates))].map((name) => ({ name, description: '' }));
+  }
+  const rep = await runFix(tools, cases, provider, seed, variant);
+  const outPath = out ?? `runs/fix-${rep.provider.replace(/[^\w.-]/g, '_')}-${variant}-seed${seed}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(rep, null, 2));
+
+  console.log(`\nprovider=${rep.provider} variant=${variant} seed=${seed}`);
+  if (!rep.renames.length) {
+    console.log('\nno HIGH-risk confusable names to fix — routing is already unambiguous by name.');
+    console.log(`report → ${outPath}`);
+    return;
+  }
+  console.log('\nproposed renames (suggestion is model-made; the re-measure below is deterministic):');
+  for (const r of rep.renames) console.log(`  ${r.from}  →  ${r.to}   (${r.reason})`);
+  console.log('\nattack                  before   after    delta');
+  console.log('─'.repeat(52));
+  const beforeBy = new Map(rep.before.attacks.map((a) => [a.attack, a.accuracy]));
+  for (const a of rep.after.attacks) {
+    const b = beforeBy.get(a.attack) ?? a.accuracy;
+    const d = (a.accuracy - b) * 100;
+    console.log(`${a.attack.padEnd(22)} ${pct(b).padStart(6)}  ${pct(a.accuracy).padStart(6)}   ${(d >= 0 ? '+' : '') + d.toFixed(1)}pp`);
+  }
+  console.log(`\nverified: the renames moved "${rep.worst_attack}" (worst attack before the fix) ${pct(rep.acc_before)} → ${pct(rep.acc_after)} = ${rep.recovered_pp >= 0 ? '+' : ''}${rep.recovered_pp}pp.`);
+  console.log(`report → ${outPath}`);
+}
+
 async function cmdCoevo(reportPath: string, outDir: string) {
   const rep = JSON.parse(readFileSync(reportPath, 'utf8')) as AttackReport;
   if (!rep.failures) throw new Error(`${reportPath} has no failures[] — re-run 'attack' with the current version`);
@@ -140,6 +180,41 @@ function cmdAudit(toolsPath: string, failOnHigh?: boolean) {
   }
 }
 
+// Zero-arg guided mode: `loopward` with no command. For real terminals; no-op-friendly defaults.
+async function cmdInteractive() {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  const ask = async (q: string, def = '') => ((await rl.question(`${q}${def ? ` [${def}]` : ''}: `)).trim() || def);
+  try {
+    console.log('loopward — answer a few questions (press enter for the default).\n');
+    const cmd = await ask('command: audit / attack / fix / multi', 'audit');
+    const seed = Number(await ask('seed', '42'));
+    if (cmd === 'audit') {
+      cmdAudit(await ask('path to your tools.json', 'datasets/tools/sample-tools.json'), false);
+      return;
+    }
+    if (cmd === 'multi') {
+      const suite = await ask('path to tasks.json', 'datasets/multistep/tasks.json');
+      const provider = await ask(`provider: ${PROVIDER_NAMES.join(' / ')}`, 'mock');
+      const model = provider === 'mock' ? undefined : (await ask('model (e.g. gpt-5.5)')) || undefined;
+      await cmdMulti(suite, provider, seed, undefined, { model });
+      return;
+    }
+    if (cmd !== 'attack' && cmd !== 'fix') { console.error(`unknown command: ${cmd}`); return; }
+    const useTools = (await ask('point at a tools schema (t) or a routing suite (s)?', 't')) !== 's';
+    const path = await ask(useTools ? 'path to tools.json' : 'path to suite.json',
+      useTools ? 'datasets/tools/sample-tools.json' : 'datasets/routing/sample.json');
+    const provider = await ask(`provider: ${PROVIDER_NAMES.join(' / ')}`, 'mock');
+    const model = provider === 'mock' ? undefined : (await ask('model (e.g. gpt-5.5)')) || undefined;
+    const po: ProviderOpts = { model };
+    const s = useTools ? undefined : path;
+    const t = useTools ? path : undefined;
+    if (cmd === 'attack') await cmdAttack(s, t, provider, seed, undefined, po, 'single');
+    else await cmdFix(s, t, provider, seed, undefined, po, 'single');
+  } finally {
+    rl.close();
+  }
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -158,30 +233,35 @@ async function main() {
     },
   });
   const cmd = positionals[0];
+  if (!cmd || cmd === 'interactive') { await cmdInteractive(); return; }
   const seed = Number(values.seed);
   const po: ProviderOpts = { model: values.model, baseURL: values['base-url'] };
   const variant = values.variant as Variant;
   if (variant !== 'single' && variant !== 'self-check') throw new Error(`--variant must be single|self-check, got ${variant}`);
   if (!values.suite && cmd === 'run') throw new Error('--suite <file.json> is required');
   if (!values.suite && !values.tools && cmd === 'attack') throw new Error('attack needs --suite <file.json> or --tools <schema.json>');
+  if (!values.suite && !values.tools && cmd === 'fix') throw new Error('fix needs --suite <file.json> or --tools <schema.json>');
 
   const failUnder = values['fail-under'] !== undefined ? Number(values['fail-under']) : undefined;
 
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant, failUnder);
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
+  else if (cmd === 'fix') await cmdFix(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
   } else {
-    console.error('usage:');
-    console.error('  loopward run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
-    console.error('  loopward attack --suite <f.json> | --tools <schema.json>  [--provider ...] [--model M] [--variant ...] [--seed 42] [--out f]');
-    console.error('  loopward multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
-    console.error('  loopward audit  --tools <schema.json>   (bring your own tools; no model calls)');
-    console.error('  loopward coevo  --report <attack-report.json> [--out coevo-out]');
-    console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
+    console.error('usage:  loopward <command>   (run with no command for interactive mode)');
+    console.error('  audit  --tools <schema.json>                      confusable tool names, no key, instant');
+    console.error('  attack --tools <schema.json> | --suite <f.json>   6 red-team attacks + robustness CI');
+    console.error('  fix    --tools <schema.json> | --suite <f.json>   propose renames, re-verify the delta');
+    console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
+    console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
+    console.error('  run    --suite <f.json>                           clean routing accuracy only');
+    console.error(`  common: [--provider ${PROVIDER_NAMES.join('|')}] [--model M] [--base-url URL] [--seed 42] [--out f]`);
+    console.error('  keys via env, one per provider: OPENAI_API_KEY, DEEPSEEK_API_KEY, GROQ_API_KEY, DMXAPI_API_KEY, ...');
     process.exit(1);
   }
 }

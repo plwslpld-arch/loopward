@@ -5,6 +5,7 @@ import { mockProvider } from '../../core/src/provider.ts';
 import { ATTACKS, getAttack } from './attacks.ts';
 import { bootstrapDeltaCI } from './metrics.ts';
 import { runAttacks } from './attack-run.ts';
+import { runFix } from './fix.ts';
 
 // every attack preserves ground_truth and keeps it in the candidate list
 const c: RoutingCase = { id: 't', intent: 'What is the weather in Tokyo', candidates: ['get_weather', 'get_forecast'], ground_truth: 'get_weather' };
@@ -40,3 +41,24 @@ const worst = Math.max(...rep.attacks.map((a) => a.robustness_delta.delta));
 assert.ok(worst > 0, 'expected at least one attack to reduce accuracy');
 
 console.log(`selfcheck OK — clean=${(rep.clean_accuracy * 100).toFixed(0)}%, worst attack delta=${(worst * 100).toFixed(0)}pp`);
+
+// fix: proposes a rename for confusable tools and re-verifies deterministically (no model needed)
+const fixTools = [
+  { name: 'get_status', description: 'Get the current status of a service or job.' },
+  { name: 'fetch_status', description: 'Fetch the latest status for a given resource.' },
+  { name: 'send_email', description: 'Send an email message to a recipient.' },
+];
+const cand = fixTools.map((t) => t.name);
+const fixCases: RoutingCase[] = [
+  { id: 'get_status', intent: 'check the current status of my running job', candidates: cand, ground_truth: 'get_status' },
+  { id: 'fetch_status', intent: 'fetch the latest status for that resource', candidates: cand, ground_truth: 'fetch_status' },
+  { id: 'send_email', intent: 'email the report to Sarah', candidates: cand, ground_truth: 'send_email' },
+];
+const fixRep = await runFix(fixTools, fixCases, mockProvider, 42);
+assert.ok(fixRep.renames.length >= 1, 'fix should rename a confusable pair');
+assert.equal(fixRep.after.attacks.length, 6, 'fix re-verify should run all attacks');
+assert.ok(Number.isFinite(fixRep.recovered_pp), 'fix should report numeric recovered_pp');
+const renamed = fixRep.renames[0];
+assert.notEqual(renamed.to, renamed.from, 'rename should change the name');
+assert.match(renamed.to, /^[a-z0-9_]+$/, 'rename should be a clean snake_case identifier');
+console.log(`selfcheck OK — fix renamed ${fixRep.renames.length} pair(s), ${renamed.from}→${renamed.to}, ${fixRep.recovered_pp >= 0 ? '+' : ''}${fixRep.recovered_pp}pp on ${fixRep.worst_attack}`);

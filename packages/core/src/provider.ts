@@ -95,23 +95,39 @@ export function openaiCompatibleProvider(opts: { name?: string; baseURL: string;
 const env = (k: string): string | undefined => process.env[k];
 
 /**
+ * Named OpenAI-compatible gateways. The base URL is baked in; the key is read from `keyEnv`
+ * (falling back to OPENAI_API_KEY). Anything not listed still works via
+ *   --provider openai --base-url <url> --model <name>
+ * so "any OpenAI-compatible model" is genuinely any model, preset or not.
+ */
+export const PRESETS: Record<string, { baseURL: string; keyEnv: string; defaultModel?: string }> = {
+  openai:      { baseURL: 'https://api.openai.com/v1',                          keyEnv: 'OPENAI_API_KEY' },
+  deepseek:    { baseURL: 'https://api.deepseek.com/v1',                        keyEnv: 'DEEPSEEK_API_KEY', defaultModel: 'deepseek-chat' },
+  openrouter:  { baseURL: 'https://openrouter.ai/api/v1',                       keyEnv: 'OPENROUTER_API_KEY' },
+  together:    { baseURL: 'https://api.together.xyz/v1',                        keyEnv: 'TOGETHER_API_KEY' },
+  groq:        { baseURL: 'https://api.groq.com/openai/v1',                     keyEnv: 'GROQ_API_KEY' },
+  moonshot:    { baseURL: 'https://api.moonshot.cn/v1',                         keyEnv: 'MOONSHOT_API_KEY' },
+  dashscope:   { baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', keyEnv: 'DASHSCOPE_API_KEY' },
+  siliconflow: { baseURL: 'https://api.siliconflow.cn/v1',                      keyEnv: 'SILICONFLOW_API_KEY' },
+  dmx:         { baseURL: 'https://www.dmxapi.cn/v1',                           keyEnv: 'DMXAPI_API_KEY' },
+};
+
+export const PROVIDER_NAMES = ['mock', ...Object.keys(PRESETS)];
+
+/**
  * Resolve a provider by name. Keys and base URLs come from the environment — nothing secret
- * lives in the repo. Any OpenAI-compatible gateway is used via `openai` by setting OPENAI_BASE_URL.
- *   mock      — offline, deterministic, no key
- *   deepseek  — DEEPSEEK_API_KEY   [DEEPSEEK_MODEL=deepseek-chat]
- *   openai    — OPENAI_API_KEY, OPENAI_MODEL   [OPENAI_BASE_URL=https://api.openai.com/v1]
+ * lives in the repo. `--base-url` overrides a preset, so any OpenAI-compatible endpoint works
+ * even under a preset name.
+ *   mock — offline, deterministic, no key
+ *   <preset> — e.g. openai | deepseek | openrouter | groq | dmx ... (key from its env var)
  */
 export function getProvider(name: string, opts: { model?: string; baseURL?: string } = {}): Provider {
   if (name === 'mock') return mockProvider;
-  if (name === 'deepseek') {
-    const model = opts.model ?? env('DEEPSEEK_MODEL') ?? 'deepseek-chat';
-    return openaiCompatibleProvider({ name: `deepseek:${model}`, baseURL: 'https://api.deepseek.com/v1', apiKey: env('DEEPSEEK_API_KEY'), model });
-  }
-  if (name === 'openai') {
-    const model = opts.model ?? env('OPENAI_MODEL');
-    if (!model) throw new Error('openai provider needs a model (--model <name> or OPENAI_MODEL)');
-    const baseURL = opts.baseURL ?? env('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1';
-    return openaiCompatibleProvider({ baseURL, apiKey: env('OPENAI_API_KEY'), model });
-  }
-  throw new Error(`unknown provider: ${name} (use: mock | deepseek | openai)`);
+  const preset = PRESETS[name];
+  if (!preset) throw new Error(`unknown provider: ${name} (use: ${PROVIDER_NAMES.join(' | ')}, or --provider openai --base-url <url>)`);
+  const model = opts.model ?? env('OPENAI_MODEL') ?? preset.defaultModel;
+  if (!model) throw new Error(`provider ${name} needs a model (--model <name> or OPENAI_MODEL)`);
+  const baseURL = opts.baseURL ?? env('OPENAI_BASE_URL') ?? preset.baseURL;
+  const apiKey = env(preset.keyEnv) ?? env('OPENAI_API_KEY');
+  return openaiCompatibleProvider({ name: `${name}:${model}`, baseURL, apiKey, model });
 }
