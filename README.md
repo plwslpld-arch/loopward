@@ -59,6 +59,18 @@ Anthropic's `{ name, description, input_schema }` array and a plain `[{ name, de
   early, never stopping, wrong step.
 - **coevo** exports every misroute as preference pairs, verifiable-reward samples, and SFT negatives. This is the
   model-and-harness co-evolution loop: the harness's failures become the model's training signal.
+- **matrix** runs the same attacked suite through several loop strategies (`single`, `self-check`, `react`,
+  `observe`) on a *fixed* model and reports how much the harness, not the model, moves robustness: per-strategy
+  attacked accuracy and case-clustered paired-bootstrap deltas between strategies. It puts the harness under test.
+- **flywheel** closes the loop end to end: split cases into train/held-out, learn which injections knock train
+  routing over, activate an anti-injection guardrail, and re-measure the held-out split with vs without it through
+  the same oracle. It reports the lift with a bootstrap CI. A demo of the co-evolution loop, not a trainer.
+
+Two commands keep the numbers honest. **stats** re-scores an attack report with a one-sided permutation test and
+Holm correction across the six attacks, so a "significant" badge survives multiple comparisons. **verify**
+re-derives a report's deterministic fields offline (hashes, per-attack accuracy, the seeded bootstrap CIs) and
+checks they agree. Every report carries a provenance manifest (seed, tool-schema hash, oracle version, model id,
+git sha), and `npm run regenerate-all` proves the mock pipeline reproduces byte-for-byte.
 
 Works with any OpenAI-compatible endpoint. Presets (`openai`, `deepseek`, `openrouter`, `groq`, `dmx`, and more)
 bake in the base URL; anything else works with `--provider openai --base-url <url>`. Keys come from the
