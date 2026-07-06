@@ -9,7 +9,7 @@ Point it at your agent's tools and it tells you which ones the router will mix u
 prompt tweak breaks routing, and it hands you the failures back as training data. Everyone is designing agent
 loops. Almost nobody is checking whether the loop's *decisions* hold up. That is the gap this fills.
 
-Ten frontier models all route tools with 100% accuracy on clean inputs in our suite. Add one injected line and
+A dozen frontier models all route tools with 100% accuracy on clean inputs in our suite. Add one injected line and
 the drop ranges from 0 points (Claude Opus-4-8 shrugs it off) to 100 (Gemini-3.1-pro gets it wrong every time).
 See [`docs/findings.md`](./docs/findings.md).
 
@@ -28,7 +28,19 @@ OPENAI_API_KEY=sk-... npx loopward attack --tools ./my-tools.json --provider ope
 npx loopward coevo --report runs/attack-*.json --out ./coevo-out
 ```
 
-`--tools` takes an OpenAI or Anthropic tool schema (or a plain `[{name, description}]` list).
+`--tools` takes the same tool schema you already pass to the model. OpenAI's function-calling format:
+
+```json
+{
+  "tools": [
+    { "type": "function", "function": { "name": "get_status",     "description": "Get the current status of a service or job." } },
+    { "type": "function", "function": { "name": "fetch_status",   "description": "Fetch the latest status for a given resource." } },
+    { "type": "function", "function": { "name": "refund_payment", "description": "Issue a refund for a completed payment." } }
+  ]
+}
+```
+
+Anthropic's `{ name, description, input_schema }` array and a plain `[{ name, description }]` list both work too.
 
 ## What it does
 
@@ -63,7 +75,7 @@ Harness-Bench, and the specific delta.
 
 ## Findings
 
-Reproducible results (10+ models) live in [`docs/findings.md`](./docs/findings.md). Short version: routing
+Reproducible results (12 models) live in [`docs/findings.md`](./docs/findings.md). Short version: routing
 robustness is model-specific and does not track capability. The attacks that actually work are the boring ones
 (terse requests, lookalike names), not the adversarial-looking ones. And feeding tool observations back in a
 multi-step loop moved task success from 10% to 60% on the same model, which says the harness decides the outcome
@@ -80,7 +92,7 @@ packages/dashboard self-contained findings dashboard (GitHub Pages)
 datasets           routing, multistep, and tool-schema suites
 ```
 
-Run the checks with `pnpm test` (offline, no key). Design notes in [`docs/`](./docs).
+Run the checks with `npm test` (offline, no key). Design notes in [`docs/`](./docs).
 
 ## Provenance and license
 

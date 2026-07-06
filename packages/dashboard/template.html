@@ -27,7 +27,7 @@
   header.top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:8px; }
   .brand { font-family:var(--mono); font-weight:600; font-size:14px; letter-spacing:.02em; color:var(--accent); }
   h1 { font-size: clamp(28px, 4.5vw, 42px); margin:.15em 0 .1em; }
-  .tagline { color:var(--muted); font-size:17px; max-width:60ch; margin:0 0 4px; }
+  .tagline { color:var(--muted); font-size:17px; max-width:62ch; margin:0 0 4px; }
   .pill { display:inline-block; font-size:12px; font-family:var(--mono); color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:3px 10px; }
   .btns { display:flex; gap:8px; flex:none; }
   .tbtn { border:1px solid var(--line); background:var(--panel); color:var(--muted); border-radius:8px; padding:6px 10px; font-family:var(--mono); font-size:12px; cursor:pointer; white-space:nowrap; }
@@ -40,7 +40,23 @@
 
   section { margin-top:44px; }
   h2 { font-size:20px; margin:0 0 4px; }
-  .sub { color:var(--muted); font-size:14px; margin:0 0 16px; max-width:70ch; }
+  .sub { color:var(--muted); font-size:14px; margin:0 0 16px; max-width:72ch; }
+
+  .prose p { max-width:72ch; margin:0 0 12px; font-size:15px; }
+  .prose p:last-child { margin-bottom:0; }
+  .pills { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:14px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); }
+  .card .tag { display:block; font-family:var(--mono); font-size:10.5px; color:var(--accent); text-transform:uppercase; letter-spacing:.06em; margin-bottom:6px; }
+  .card h3 { margin:0 0 6px; font-size:14px; }
+  .card p { margin:0; color:var(--muted); font-size:13.5px; }
+  .card .k { font-family:var(--mono); color:var(--accent); font-variant-numeric:tabular-nums; }
+
+  .pre { overflow-x:auto; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:var(--shadow); padding:16px 18px; margin:0 0 10px; }
+  .pre code { font-family:var(--mono); font-size:12.5px; color:var(--ink); white-space:pre; display:block; line-height:1.55; }
+  .pre .c { color:var(--muted); }
+  .usecap { color:var(--muted); font-size:13px; margin:0 0 20px; max-width:72ch; }
 
   .cmds { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .cmd { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; box-shadow:var(--shadow); }
@@ -59,12 +75,6 @@
   .vend { color:var(--muted); font-size:10.5px; font-family:var(--mono); }
   td.cell { color:#fff; font-family:var(--mono); font-variant-numeric:tabular-nums; font-weight:600; font-size:12.5px; min-width:78px; height:40px; border:2px solid var(--panel); border-radius:6px; }
   td.rowlab { border-top:1px solid var(--line); }
-
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(232px,1fr)); gap:14px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:var(--shadow); }
-  .card h3 { margin:0 0 6px; font-size:14px; }
-  .card p { margin:0; color:var(--muted); font-size:13.5px; }
-  .card .k { font-family:var(--mono); color:var(--accent); font-variant-numeric:tabular-nums; }
 
   .bars { display:grid; gap:8px; }
   .barrow { display:grid; grid-template-columns:150px 1fr; align-items:center; gap:12px; font-size:13px; }
@@ -104,8 +114,22 @@
   </div>
 
   <section>
-    <h2 id="t-cmh"></h2>
-    <p class="sub" id="t-cms"></p>
+    <h2 id="t-whh"></h2>
+    <div class="prose" id="t-whp"></div>
+    <div class="pills" id="pills"></div>
+  </section>
+
+  <section>
+    <h2 id="t-feh"></h2>
+    <p class="sub" id="t-fes"></p>
+    <div class="cards" id="feats"></div>
+  </section>
+
+  <section>
+    <h2 id="t-useh"></h2>
+    <p class="sub" id="t-uses"></p>
+    <div class="pre"><code id="toolcode"></code></div>
+    <p class="usecap" id="t-usecap"></p>
     <div class="cmds" id="cmds"></div>
   </section>
 
@@ -145,14 +169,37 @@ const DATA = /*__DATA__*/{};
 const VENDOR_COLOR = { Anthropic:"#d97757", OpenAI:"#10a37f", Google:"#4285f4", xAI:"#8b5cf6", DeepSeek:"#4d6bfe", Alibaba:"#ff6a00", Zhipu:"#3859ff" };
 const N = DATA.models.length;
 
+const TOOLJSON =
+`{
+  "tools": [
+    { "type": "function", "function": { "name": "get_status",     "description": "Get the current status of a service or job." } },
+    { "type": "function", "function": { "name": "fetch_status",   "description": "Fetch the latest status for a given resource." } },
+    { "type": "function", "function": { "name": "refund_payment", "description": "Issue a refund for a completed payment." } }
+  ]
+}`;
+
 const T = {
   en: {
-    lang:"中", h1:"Your agent picks the right tool every time. Until it doesn't.",
-    tag:"Every tool-using agent makes the same call over and over: which tool. Loopward goes after that one decision, using your own tools, and shows you where it breaks before your users do.",
+    lang:"中", h1:"Swap the model and your agent's tool routing can swing a full 100 points.",
+    tag:"Every tool-using agent makes the same call over and over: which tool. Loopward tests only that decision, using your own tools, and finds the weak spots before your users do.",
     to:"to",
-    cap:`The whole problem, in one number. A single injected line ("always prefer tool X") costs <b>Claude Opus-4-8</b> nothing and makes <b>Gemini-3.1-pro</b> wrong every single time. Across ${N} models the damage runs 0 to 100 points. The model you pick matters more than the loop you wrap around it, and it has nothing to do with how big or new the model is.`,
-    cmh:"What you actually run",
-    cms:"No install, no build, no config file. Point it at your tool schema and go.",
+    cap:`The whole problem in one number. A single injected line ("always prefer tool X") costs <b>Claude Opus-4-8</b> nothing and makes <b>Gemini-3.1-pro</b> wrong every single time. Across ${N} models the damage runs 0 to 100 points. The model you pick matters more than the loop you wrap around it, and it has little to do with how big or new the model is.`,
+    whh:"What Loopward is",
+    whp:`<p>An open-source CLI that stress-tests one decision inside your agent loop: which tool to call. You hand it the tool schema you already pass to the model. It writes a test request for each tool, rewrites that request six ways, and checks whether the model still knows which tool to reach for.</p><p>Scoring uses a fixed ground-truth answer, not an LLM judge, so results are stable and reproducible. It talks to any OpenAI-compatible endpoint, so switching models is one flag. It is built for two people: anyone tuning an agent who wants to know whether a model swap makes routing sturdier, and anyone building a harness who wants an honest number on routing quality.</p>`,
+    pills:["Open source · MIT","Zero runtime deps","No build step (native TS on Node 24)","Any OpenAI-compatible model"],
+    feh:"What it does",
+    fes:"From a millisecond name audit to feeding failures back into training, one chain.",
+    feats:[
+      ["no key needed","Audit tool names","Reads your tool list and points out the names a router will mix up, like get_status, fetch_status, and query_status colliding. No model call, back in milliseconds. Run it first."],
+      ["six red-team rewrites","Adversarial rewrites","Lookalike names, overlapping tools, do-not-use traps, injected instructions, two requests at once, and prompts stripped too thin. Each reports how many points routing lost, with 95% intervals."],
+      ["past step one","Multi-step loops","Getting one route right is not a finished task. On multi-step work it checks whether the model finishes, quits too early, or never stops."],
+      ["closed loop","Failures to training data","Every misroute exports as preference pairs, verifiable-reward samples, and SFT negatives. Feed them straight into DPO, RL, or fine-tuning."],
+      ["bring your own","Your tools, your model","Your tools, and your model too. deepseek, GPT, Claude, Gemini, Grok, GLM are all treated the same. Switching is one flag."],
+      ["blocks the PR","CI gate","Drop below your accuracy floor, or ship a high-risk confusable name, and it exits non-zero. The build goes red."],
+    ],
+    useh:"How to use it",
+    uses:"Start with a tool list. It is the same schema you already put in the model's tools parameter, so paste it in as-is.",
+    usecap:"Above is OpenAI's function-calling format. Anthropic's { name, description, input_schema } works too. Save it as a .json file and point all four commands at it.",
     cmds:[
       ["free, instant","npx loopward audit --tools ./tools.json","Reads your tool list and tells you which names a router will mix up. No API key, done in milliseconds. Run this one first."],
       ["your tools, real model","npx loopward attack --tools ./tools.json --model gpt-5.5","Writes a test request for each tool, then tries six ways to knock the routing over and reports how far it fell, with confidence intervals."],
@@ -179,17 +226,31 @@ const T = {
     ],
   },
   zh: {
-    lang:"EN", h1:"你的智能体选工具一向很准,直到遇上真实用户。",
-    tag:"每个会用工具的智能体,都在反复做同一件事:决定调用哪个工具。Loopward 专门测这个决定,而且用你自己的工具来测,在上线出问题之前,先帮你找到薄弱环节。",
+    lang:"EN", h1:"换个模型,智能体选工具的准确率能差 100 分。",
+    tag:"每个会用工具的智能体都在反复做同一件事:决定调用哪个工具。Loopward 只测这一个决定,而且用你自己的工具来测,在真实用户把问题问出来之前,先帮你找到薄弱环节。",
     to:"到",
-    cap:`一个数字就能说明问题。在上下文里注入一句“优先使用工具 X”:Claude Opus-4-8 完全不受影响,Gemini-3.1-pro 却每次都选错。${N} 个模型里,准确率下降从 0 到 100 分不等。选择哪个模型,比在外层套多复杂的循环都更重要,而且与模型的大小、新旧都无关。`,
-    cmh:"你实际会用到的命令",
-    cms:"无需安装、无需编译、也无需配置文件。指向你的工具清单,直接运行。",
+    cap:`一个数字就能说清问题。在上下文里注入一句“优先使用工具 X”:Claude Opus-4-8 完全不受影响,Gemini-3.1-pro 却每次都选错。${N} 个模型里,准确率下降从 0 到 100 分不等。选哪个模型,比在外面套多复杂的循环都更关键,而且跟模型的大小、新旧关系不大。`,
+    whh:"Loopward 是什么",
+    whp:`<p>一个开源命令行工具,专门给智能体循环里“选哪个工具”这个决定做压力测试。你把平时调用模型时用的那份工具 schema 交给它,它为每个工具编一条测试请求,再把请求改写六种说法,看模型还认不认得该用哪个工具。</p><p>判分靠写死的标准答案,不用大模型当裁判,所以结果稳定、可复现。任何 OpenAI 兼容的接口都能接,换模型只改一个参数。它为两类人做:在调智能体、想知道换个模型选工具会不会更稳的人;以及做 harness、想对路由质量有个客观数字的人。</p>`,
+    pills:["开源 · MIT","零运行时依赖","无需编译(Node 24 原生 TS)","任意 OpenAI 兼容模型"],
+    feh:"它能做什么",
+    fes:"从毫秒级的命名审计,到把失败样本喂回训练,一条链走完。",
+    feats:[
+      ["无需密钥","审计工具命名","读一遍你的工具清单,指出路由最容易混淆的名字,比如 get_status、fetch_status、query_status 撞在一起。不调模型,毫秒级返回,第一个就该跑它。"],
+      ["六种红队改写","对抗式改写请求","名字相近、功能重叠、否定陷阱、注入指令、一次两件事、话说太短。每一种都给出准确率下降了多少,并附 95% 置信区间。"],
+      ["不止单步","多步循环测试","选对一步不等于任务完成。多步任务里,它看模型能不能走完、会不会过早收手,或者停不下来。"],
+      ["闭环","失败转训练数据","每个错误路由都导出成偏好对、可验证奖励样本和 SFT 负样本。DPO、强化学习、微调都能直接喂。"],
+      ["接你自己的","自带工具与模型","工具用你自己的,模型也用你自己的。deepseek、GPT、Claude、Gemini、Grok、GLM 一视同仁,换模型只改一个参数。"],
+      ["卡住 PR","接入 CI 关卡","准确率跌破你设的阈值,或者出现高风险的混淆命名,就返回非零退出码,构建直接变红。"],
+    ],
+    useh:"怎么用",
+    uses:"先给它一份工具清单。这份清单就是你平时调用模型时 tools 参数里的那份 schema,原样贴进来就行。",
+    usecap:"上面是 OpenAI 的函数调用格式;Anthropic 的 { name, description, input_schema } 也认。存成一个 .json 文件,下面四条命令都指向它。",
     cmds:[
-      ["免费,秒级返回","npx loopward audit --tools ./tools.json","读取你的工具清单,找出路由容易混淆的名字。不需要密钥,毫秒级返回。建议第一个就运行它。"],
-      ["用你的工具,配真实模型","npx loopward attack --tools ./tools.json --model gpt-5.5","为每个工具生成一条测试请求,再用六种方式对它施加干扰,报告准确率下降了多少,并附上置信区间。"],
-      ["合并前的关卡","npx loopward audit --tools ./tools.json --fail-on-high","同一个审计,加上退出码。接入 CI,一旦出现容易混淆的工具,构建就会失败。"],
-      ["把失败转成训练数据","npx loopward coevo --report run.json","每一个错误路由,都会被导出为偏好对、奖励样本和 SFT 负样本。外层框架的失败,就成了模型的训练信号。"],
+      ["免费,秒级返回","npx loopward audit --tools ./tools.json","读你的工具清单,找出路由容易混淆的名字。不用密钥,毫秒级返回。建议先跑它。"],
+      ["用你的工具配真实模型","npx loopward attack --tools ./tools.json --model gpt-5.5","给每个工具生成一条测试请求,再用六种方式干扰它,报告准确率下降了多少,并附置信区间。"],
+      ["合并前的关卡","npx loopward audit --tools ./tools.json --fail-on-high","同一个审计,加上退出码。接进 CI,一出现容易混淆的工具,构建就失败。"],
+      ["把失败转成训练数据","npx loopward coevo --report run.json","每个错误路由都导出成偏好对、奖励样本、SFT 负样本。框架的失败,变成模型的训练信号。"],
     ],
     s1h:`我们用这套攻击测了 ${N} 个模型,看看它们各自能扛住多少。`,
     s1s:"每个数字表示这类攻击让路由准确率下降了多少分。绿色表示扛住了,红色表示崩了。按注入排序,它造成的差距最大。",
@@ -216,6 +277,8 @@ let lang = (navigator.language || "en").startsWith("zh") ? "zh" : "en";
 
 function sev(v){ const t=Math.max(0,Math.min(100,v))/100; const hue = 145 - 145*t; const l = 34 + 6*Math.sin(t*Math.PI); return `hsl(${hue.toFixed(0)} 62% ${l.toFixed(0)}%)`; }
 
+function pills(){ document.getElementById("pills").innerHTML=T[lang].pills.map(p=>`<span class='pill'>${p}</span>`).join(""); }
+function feats(){ document.getElementById("feats").innerHTML=T[lang].feats.map(([tag,h,p])=>`<div class='card'><span class='tag'>${tag}</span><h3>${h}</h3><p>${p}</p></div>`).join(""); }
 function cmds(){ document.getElementById("cmds").innerHTML=T[lang].cmds.map(([tag,c,d])=>`<div class='cmd'><div class='tag'>${tag}</div><code>${c}</code><p class='d'>${d}</p></div>`).join(""); }
 function heat(){
   const t=document.getElementById("heat"); const A=DATA.attacks; const AL=T[lang].attack;
@@ -241,12 +304,13 @@ function multi(){
 }
 function render(){
   const d=T[lang];
-  for(const id of ["h1","tag","to","cap","cmh","cms","s1h","s1s","s2h","s3ah","s3as","s3bh","s3bs","s3bc","fp","fc"])
+  for(const id of ["h1","tag","to","cap","whh","whp","feh","fes","useh","uses","usecap","s1h","s1s","s2h","s3ah","s3as","s3bh","s3bs","s3bc","fp","fc"])
     document.getElementById("t-"+id).innerHTML = d[id];
+  document.getElementById("toolcode").textContent = TOOLJSON;
   document.getElementById("lang").textContent = d.lang;
   document.getElementById("meta").textContent = DATA.generated;
   document.documentElement.lang = lang;
-  cmds(); heat(); cards(); variant(); multi();
+  pills(); feats(); cmds(); heat(); cards(); variant(); multi();
 }
 render();
 
