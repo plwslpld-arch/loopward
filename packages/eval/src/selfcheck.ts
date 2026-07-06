@@ -5,6 +5,7 @@ import { mockProvider } from '../../core/src/provider.ts';
 import { toolSchemaHash } from '../../core/src/manifest.ts';
 import { runAttacks } from '../../redteam/src/attack-run.ts';
 import { verifyReport } from './verify.ts';
+import { harnessMatrix } from './harness-portability/harness-matrix.ts';
 
 const suite: RoutingCase[] = [
   { id: 'a', intent: 'What is the weather in Tokyo', candidates: ['get_weather', 'get_forecast', 'get_air_quality'], ground_truth: 'get_weather' },
@@ -37,3 +38,15 @@ t.matrix[0][acol] = t.matrix[0][acol] ? 0 : 1;
 assert.equal(verifyReport(t).pass, false, 'flipped matrix bit must fail');
 
 console.log(`selfcheck OK — verify passes clean report (hash ${rep.manifest.tool_schema_hash}), rejects 4 tampered fields`);
+
+// harness-matrix: 4 strategies on a fixed model, per-strategy accuracy + case-paired deltas, deterministic
+const hm = await harnessMatrix(suite, mockProvider, 42);
+assert.equal(hm.strategies.length, 4);
+assert.equal(hm.per_strategy.length, 4);
+assert.equal(hm.deltas.length, 3, 'best vs each of the other three strategies');
+assert.ok(['single', 'self-check', 'react', 'observe'].includes(hm.best));
+for (const r of hm.per_strategy) { assert.ok(r.attacked >= 0 && r.attacked <= 1); assert.ok(r.clean >= 0 && r.clean <= 1); }
+for (const d of hm.deltas) assert.ok(d.delta.lo <= d.delta.delta && d.delta.delta <= d.delta.hi, 'CI brackets the point delta');
+const hm2 = await harnessMatrix(suite, mockProvider, 42);
+assert.deepEqual(hm, hm2, 'harness-matrix must be deterministic under a deterministic provider');
+console.log(`selfcheck OK — harness-matrix: ${hm.strategies.join('/')}; most robust = ${hm.best}`);

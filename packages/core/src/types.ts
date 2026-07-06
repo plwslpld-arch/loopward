@@ -23,7 +23,7 @@ export interface Provider {
 }
 
 export interface Step {
-  node: 'perceive' | 'route' | 'reflect' | 'act' | 'verify' | 'stop';
+  node: 'perceive' | 'route' | 'reflect' | 'think' | 'observe' | 'act' | 'verify' | 'stop';
   [k: string]: unknown;
 }
 

@@ -13,6 +13,7 @@ import { runFix } from '../../redteam/src/fix.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 import { gitSha, type StampInput } from '../../core/src/manifest.ts';
 import { verifyReport, formatVerify } from '../../eval/src/verify.ts';
+import { harnessMatrix, DEFAULT_STRATEGIES } from '../../eval/src/harness-portability/harness-matrix.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -165,6 +166,34 @@ async function cmdMulti(suite: string, provider: string, seed: number, out: stri
   }
 }
 
+async function cmdMatrix(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, strategiesArg?: string) {
+  const provider = getProvider(providerName, po);
+  let cases: RoutingCase[];
+  if (toolsPath) {
+    const tools = loadTools(toolsPath);
+    console.log(`synthesizing ${tools.length} test intents from your tools with ${provider.name}...`);
+    cases = await synthesizeCases(tools, provider, seed);
+  } else cases = loadSuite(suite!);
+
+  const allowed = ['single', 'self-check', 'react', 'observe'];
+  const strategies = (strategiesArg ? strategiesArg.split(',').map((s) => s.trim()) : DEFAULT_STRATEGIES) as Variant[];
+  for (const s of strategies) if (!allowed.includes(s)) throw new Error(`--strategies: unknown strategy "${s}" (use ${allowed.join(',')})`);
+
+  const rep = await harnessMatrix(cases, provider, seed, strategies);
+  const outPath = out ?? `runs/matrix-${rep.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(rep, null, 2));
+
+  console.log(`\nprovider=${rep.provider} seed=${seed}  n=${rep.n_cases}  (harness strategies on a FIXED model)\n`);
+  console.log('strategy        clean    attacked');
+  console.log('─'.repeat(38));
+  for (const r of rep.per_strategy) console.log(`${r.strategy.padEnd(14)} ${pct(r.clean).padStart(6)}  ${pct(r.attacked).padStart(8)}`);
+  console.log(`\nmost robust harness: ${rep.best}. delta vs the others (case-paired, 95% CI):`);
+  for (const d of rep.deltas) console.log(`  ${d.a} − ${d.b}:  ${pp(d.delta.delta)}  [${pp(d.delta.lo)}, ${pp(d.delta.hi)}]`);
+  console.log(`\n${rep.note}`);
+  console.log(`report → ${outPath}`);
+}
+
 function cmdVerify(reportPath: string) {
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
   const result = verifyReport(report);
@@ -241,6 +270,7 @@ async function main() {
       report: { type: 'string', short: 'r' },
       variant: { type: 'string', short: 'v', default: 'single' },
       tools: { type: 'string', short: 't' },
+      strategies: { type: 'string' },
       'fail-under': { type: 'string' },
       'fail-on-high': { type: 'boolean' },
     },
@@ -250,10 +280,11 @@ async function main() {
   const seed = Number(values.seed);
   const po: ProviderOpts = { model: values.model, baseURL: values['base-url'] };
   const variant = values.variant as Variant;
-  if (variant !== 'single' && variant !== 'self-check') throw new Error(`--variant must be single|self-check, got ${variant}`);
+  if (!['single', 'self-check', 'react', 'observe'].includes(variant)) throw new Error(`--variant must be single|self-check|react|observe, got ${variant}`);
   if (!values.suite && cmd === 'run') throw new Error('--suite <file.json> is required');
   if (!values.suite && !values.tools && cmd === 'attack') throw new Error('attack needs --suite <file.json> or --tools <schema.json>');
   if (!values.suite && !values.tools && cmd === 'fix') throw new Error('fix needs --suite <file.json> or --tools <schema.json>');
+  if (!values.suite && !values.tools && cmd === 'matrix') throw new Error('matrix needs --suite <file.json> or --tools <schema.json>');
 
   const failUnder = values['fail-under'] !== undefined ? Number(values['fail-under']) : undefined;
 
@@ -261,6 +292,7 @@ async function main() {
   else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant, failUnder);
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
   else if (cmd === 'fix') await cmdFix(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
+  else if (cmd === 'matrix') await cmdMatrix(values.suite, values.tools, values.provider!, seed, values.out, po, values.strategies);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
   else if (cmd === 'verify') { const path = values.report ?? positionals[1]; if (!path) throw new Error('verify needs --report <report.json>'); cmdVerify(path); }
   else if (cmd === 'coevo') {
@@ -271,6 +303,7 @@ async function main() {
     console.error('  audit  --tools <schema.json>                      confusable tool names, no key, instant');
     console.error('  attack --tools <schema.json> | --suite <f.json>   6 red-team attacks + robustness CI');
     console.error('  fix    --tools <schema.json> | --suite <f.json>   propose renames, re-verify the delta');
+    console.error('  matrix --tools <schema.json> | --suite <f.json>   compare loop strategies on a fixed model');
     console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
     console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
     console.error('  verify --report <report.json>                     re-check a report\'s deterministic fields, offline');
