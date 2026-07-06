@@ -11,10 +11,9 @@ function overlap(a: Set<string>, b: Set<string>): number {
 
 /**
  * Deterministic stand-in "model": picks the candidate whose name shares the most
- * tokens with the intent (first candidate on a tie). Runs offline with zero deps so
- * the whole pipeline is testable without an API key. Real robustness numbers need a
- * real provider — this is a plumbing stand-in, not a model under test.
- * ponytail: token-overlap heuristic; the real signal comes from the deepseek provider.
+ * tokens with the intent (first on a tie). Runs offline with zero deps so the pipeline
+ * is testable without an API key. A plumbing stand-in, not a model under test.
+ * ponytail: token-overlap heuristic; real signal comes from a real provider.
  */
 export const mockProvider: Provider = {
   name: 'mock',
@@ -31,47 +30,48 @@ export const mockProvider: Provider = {
 };
 
 /**
- * DeepSeek (OpenAI-compatible) via plain fetch — no SDK dependency. Needs DEEPSEEK_API_KEY.
- * ponytail: routing is a single structured decision, so a plain call is right here.
- * Adopt Vercel AI SDK at W3 when the planner-subagent variant needs real multi-step tool-calling.
+ * Generic OpenAI-compatible chat provider (plain fetch, no SDK). Works with any gateway
+ * that speaks /chat/completions — OpenAI, DeepSeek, or any proxy — by pointing baseURL at it.
+ * Keys/URLs are injected by the caller from the environment; nothing is hardcoded here.
+ * ponytail: routing is one structured call, so a plain request is right; adopt an agent SDK
+ * at W3 only when the planner-subagent variant needs real multi-step tool-calling.
  */
-export function deepseekProvider(opts: { model?: string; apiKey?: string } = {}): Provider {
-  const model = opts.model ?? 'deepseek-chat';
-  const apiKey = opts.apiKey ?? process.env.DEEPSEEK_API_KEY;
+export function openaiCompatibleProvider(opts: { name?: string; baseURL: string; apiKey?: string; model: string }): Provider {
+  const url = opts.baseURL.replace(/\/+$/, '') + '/chat/completions';
   return {
-    name: `deepseek:${model}`,
+    name: opts.name ?? `openai:${opts.model}`,
     async route(intent, candidates, seed): Promise<RouteResult> {
-      if (!apiKey) throw new Error('DEEPSEEK_API_KEY not set');
+      if (!opts.apiKey) throw new Error(`${opts.name ?? 'openai'}: missing API key (set it in the environment)`);
       const sys =
         'You are a tool router. Given a user intent and a list of candidate tools, ' +
         'reply with ONLY the exact name of the single best tool. No explanation.';
       const user = `Intent: ${intent}\nCandidates: ${candidates.join(', ')}\nAnswer with one exact candidate name.`;
-      const body = JSON.stringify({
-        model,
-        messages: [{ role: 'system', content: sys }, { role: 'user', content: user }],
-        temperature: 0,
-        seed,
-      });
-      // ponytail: 3 tries with linear backoff — a single transient blip shouldn't abort a 300-call run.
+      const messages = [{ role: 'system', content: sys }, { role: 'user', content: user }];
+      // Some newer/reasoning models reject temperature/seed. Start with them; drop on a 400 that names them.
+      let sampling = true;
+      const mkBody = () => JSON.stringify(sampling ? { model: opts.model, messages, temperature: 0, seed } : { model: opts.model, messages });
+      // ponytail: 4 tries with linear backoff — a single transient blip shouldn't abort a 300-call run.
       let res: Response | undefined;
-      for (let attempt = 1; attempt <= 3; attempt++) {
+      for (let attempt = 1; attempt <= 4; attempt++) {
         try {
-          res = await fetch('https://api.deepseek.com/chat/completions', {
+          res = await fetch(url, {
             method: 'POST',
-            headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-            body,
+            headers: { 'content-type': 'application/json', authorization: `Bearer ${opts.apiKey}` },
+            body: mkBody(),
           });
           if (res.ok) break;
-          if (res.status < 500 && res.status !== 429) throw new Error(`deepseek ${res.status}: ${await res.text()}`);
+          const text = await res.text();
+          if (res.status === 400 && sampling && /temperature|seed|top_p|sampling/i.test(text)) { sampling = false; continue; }
+          if (res.status < 500 && res.status !== 429) throw new Error(`${opts.model} ${res.status}: ${text}`);
         } catch (e) {
-          if (attempt === 3) throw e;
+          if (attempt === 4) throw e;
         }
         await new Promise((r) => setTimeout(r, attempt * 1000));
       }
-      if (!res || !res.ok) throw new Error(`deepseek failed after retries: ${res?.status ?? 'network'}`);
+      if (!res || !res.ok) throw new Error(`${opts.model} failed after retries: ${res?.status ?? 'network'}`);
       const data = (await res.json()) as { choices: { message: { content: string } }[] };
       const raw = (data.choices?.[0]?.message?.content ?? '').trim();
-      // snap the free-text answer to the closest candidate (exact, then substring)
+      // snap free-text answer to the closest candidate (exact, then substring)
       const exact = candidates.find((c) => c.toLowerCase() === raw.toLowerCase());
       const tool = exact ?? candidates.find((c) => raw.toLowerCase().includes(c.toLowerCase())) ?? raw;
       return { tool, raw };
@@ -79,8 +79,26 @@ export function deepseekProvider(opts: { model?: string; apiKey?: string } = {})
   };
 }
 
-export function getProvider(name: string): Provider {
+const env = (k: string): string | undefined => process.env[k];
+
+/**
+ * Resolve a provider by name. Keys and base URLs come from the environment — nothing secret
+ * lives in the repo. Any OpenAI-compatible gateway is used via `openai` by setting OPENAI_BASE_URL.
+ *   mock      — offline, deterministic, no key
+ *   deepseek  — DEEPSEEK_API_KEY   [DEEPSEEK_MODEL=deepseek-chat]
+ *   openai    — OPENAI_API_KEY, OPENAI_MODEL   [OPENAI_BASE_URL=https://api.openai.com/v1]
+ */
+export function getProvider(name: string, opts: { model?: string; baseURL?: string } = {}): Provider {
   if (name === 'mock') return mockProvider;
-  if (name === 'deepseek') return deepseekProvider();
-  throw new Error(`unknown provider: ${name} (use: mock | deepseek)`);
+  if (name === 'deepseek') {
+    const model = opts.model ?? env('DEEPSEEK_MODEL') ?? 'deepseek-chat';
+    return openaiCompatibleProvider({ name: `deepseek:${model}`, baseURL: 'https://api.deepseek.com/v1', apiKey: env('DEEPSEEK_API_KEY'), model });
+  }
+  if (name === 'openai') {
+    const model = opts.model ?? env('OPENAI_MODEL');
+    if (!model) throw new Error('openai provider needs a model (--model <name> or OPENAI_MODEL)');
+    const baseURL = opts.baseURL ?? env('OPENAI_BASE_URL') ?? 'https://api.openai.com/v1';
+    return openaiCompatibleProvider({ baseURL, apiKey: env('OPENAI_API_KEY'), model });
+  }
+  throw new Error(`unknown provider: ${name} (use: mock | deepseek | openai)`);
 }

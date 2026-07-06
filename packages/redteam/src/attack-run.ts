@@ -11,6 +11,16 @@ export interface AttackResult {
   robustness_delta: DeltaCI;
 }
 
+/** A single misroute under an attack — the raw material for co-evolution export. */
+export interface Failure {
+  attack: string;
+  caseId: string;
+  intent: string;        // the perturbed intent the model actually saw
+  candidates: string[];  // the (possibly perturbed) candidate set
+  chosen: string;        // what the model wrongly routed to
+  ground_truth: string;  // the correct route
+}
+
 export interface AttackReport {
   provider: string;
   seed: number;
@@ -19,6 +29,8 @@ export interface AttackReport {
   attacks: AttackResult[];
   /** heatmap-ready: per case, correctness under clean + each attack (1/0). */
   matrix: { caseId: string; clean: number; [attack: string]: string | number }[];
+  /** every misroute under attack (for coevo). */
+  failures: Failure[];
 }
 
 const bit = (b: boolean): number => (b ? 1 : 0);
@@ -34,6 +46,7 @@ export async function runAttacks(
   const cleanArr = cases.map((c) => cleanBy.get(c.id) ?? 0);
 
   const matrix = cases.map((c) => ({ caseId: c.id, clean: cleanBy.get(c.id) ?? 0 }) as AttackReport['matrix'][number]);
+  const failures: Failure[] = [];
 
   const results: AttackResult[] = [];
   for (const atk of attacks) {
@@ -42,6 +55,13 @@ export async function runAttacks(
     const by = new Map(run.trajectories.map((t) => [t.caseId, bit(t.correct)]));
     const attackArr = cases.map((c) => by.get(c.id) ?? 0);
     matrix.forEach((row, i) => (row[atk.name] = attackArr[i]));
+    // record every misroute under this attack — the coevo raw material
+    run.trajectories.forEach((t, i) => {
+      if (!t.correct) failures.push({
+        attack: atk.name, caseId: t.caseId, intent: perturbed[i].intent,
+        candidates: perturbed[i].candidates, chosen: t.routed, ground_truth: t.groundTruth,
+      });
+    });
     results.push({
       attack: atk.name,
       source: atk.source,
@@ -58,5 +78,6 @@ export async function runAttacks(
     clean_accuracy: mean(cleanArr),
     attacks: results,
     matrix,
+    failures,
   };
 }

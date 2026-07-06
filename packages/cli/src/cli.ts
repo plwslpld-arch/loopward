@@ -5,7 +5,8 @@ import { dirname } from 'node:path';
 import type { RoutingCase } from '../../core/src/types.ts';
 import { getProvider } from '../../core/src/provider.ts';
 import { runSuite } from '../../core/src/loop.ts';
-import { runAttacks } from '../../redteam/src/attack-run.ts';
+import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
+import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -23,9 +24,11 @@ function loadSuite(path: string): RoutingCase[] {
 const pct = (x: number) => (x * 100).toFixed(1) + '%';
 const pp = (x: number) => (x >= 0 ? '+' : '') + (x * 100).toFixed(1) + 'pp';
 
-async function cmdRun(suite: string, provider: string, seed: number, out?: string) {
+interface ProviderOpts { model?: string; baseURL?: string }
+
+async function cmdRun(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
   const cases = loadSuite(suite);
-  const summary = await runSuite(cases, getProvider(provider), seed);
+  const summary = await runSuite(cases, getProvider(provider, po), seed);
   const outPath = out ?? `runs/${summary.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.jsonl`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, summary.trajectories.map((t) => JSON.stringify(t)).join('\n') + '\n');
@@ -34,9 +37,9 @@ async function cmdRun(suite: string, provider: string, seed: number, out?: strin
   console.log(`trajectories → ${outPath}`);
 }
 
-async function cmdAttack(suite: string, provider: string, seed: number, out?: string) {
+async function cmdAttack(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
   const cases = loadSuite(suite);
-  const rep = await runAttacks(cases, getProvider(provider), seed);
+  const rep = await runAttacks(cases, getProvider(provider, po), seed);
   const outPath = out ?? `runs/attack-${rep.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, JSON.stringify(rep, null, 2));
@@ -55,26 +58,48 @@ async function cmdAttack(suite: string, provider: string, seed: number, out?: st
   console.log(`\nfull report → ${outPath}`);
 }
 
+async function cmdCoevo(reportPath: string, outDir: string) {
+  const rep = JSON.parse(readFileSync(reportPath, 'utf8')) as AttackReport;
+  if (!rep.failures) throw new Error(`${reportPath} has no failures[] — re-run 'attack' with the current version`);
+  const files = toFiles(buildExport(rep.failures));
+  mkdirSync(outDir, { recursive: true });
+  console.log(`from ${rep.provider} (${rep.failures.length} raw misroutes):`);
+  for (const [name, body] of Object.entries(files)) {
+    const path = `${outDir.replace(/\/$/, '')}/${name}`;
+    writeFileSync(path, body);
+    console.log(`  ${String(body ? body.trimEnd().split('\n').length : 0).padStart(4)} rows → ${path}`);
+  }
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
       suite: { type: 'string', short: 's' },
       provider: { type: 'string', short: 'p', default: 'mock' },
+      model: { type: 'string', short: 'm' },
+      'base-url': { type: 'string' },
       seed: { type: 'string', default: '42' },
       out: { type: 'string', short: 'o' },
+      report: { type: 'string', short: 'r' },
     },
   });
   const cmd = positionals[0];
   const seed = Number(values.seed);
+  const po: ProviderOpts = { model: values.model, baseURL: values['base-url'] };
   if (!values.suite && (cmd === 'run' || cmd === 'attack')) throw new Error('--suite <file.json> is required');
 
-  if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out);
-  else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out);
-  else {
+  if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po);
+  else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po);
+  else if (cmd === 'coevo') {
+    if (!values.report) throw new Error('--report <attack-report.json> is required');
+    await cmdCoevo(values.report, values.out ?? 'coevo-out');
+  } else {
     console.error('usage:');
-    console.error('  loopbench run    --suite <file.json> [--provider mock|deepseek] [--seed 42] [--out trace.jsonl]');
-    console.error('  loopbench attack --suite <file.json> [--provider mock|deepseek] [--seed 42] [--out report.json]');
+    console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--base-url URL] [--seed 42] [--out f]');
+    console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--base-url URL] [--seed 42] [--out f]');
+    console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');
+    console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
     process.exit(1);
   }
 }
