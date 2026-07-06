@@ -32,7 +32,6 @@ the model with `--model`.
 | `moonshot`    | `https://api.moonshot.cn/v1`                        | `MOONSHOT_API_KEY`   |
 | `dashscope`   | `https://dashscope.aliyuncs.com/compatible-mode/v1` | `DASHSCOPE_API_KEY`  |
 | `siliconflow` | `https://api.siliconflow.cn/v1`                     | `SILICONFLOW_API_KEY`|
-| `dmx`         | `https://www.dmxapi.cn/v1`                          | `DMXAPI_API_KEY`     |
 
 ```bash
 export GROQ_API_KEY=gsk_...
