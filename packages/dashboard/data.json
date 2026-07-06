@@ -140,6 +140,19 @@
       }
     },
     {
+      "name": "qwen3.7-max",
+      "vendor": "Alibaba",
+      "clean": 97.6,
+      "deltas": {
+        "semantic_injection": 97.6,
+        "minimal_context": 19,
+        "boundary_blur": 2.4,
+        "multi_intent": 4.8,
+        "cross_skill_confusion": -2.4,
+        "negation_trap": -2.4
+      }
+    },
+    {
       "name": "gemini-3.1-pro",
       "vendor": "Google",
       "clean": 100,

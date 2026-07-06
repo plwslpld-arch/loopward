@@ -78,12 +78,12 @@ The bootstrap CI captures case-sampling uncertainty but not this model stochasti
 
 ---
 
-## F3 — Routing robustness is model-specific, not a clean vendor property (11 models)
+## F3 — Routing robustness is model-specific, not a clean vendor property (12 models)
 
-**Setup.** Same `tools.json` (n=42), `single` variant, seed 42, deterministic oracle. 11 models across five
+**Setup.** Same `tools.json` (n=42), `single` variant, seed 42, deterministic oracle. 12 models across six
 vendors and three tiers, via a DeepSeek key and an OpenAI-compatible gateway. All score 100% clean except
-DeepSeek-v4-pro (97.6%), so nearly every delta below is pure attack-induced degradation. Values are
-robustness_delta (pp, higher = more fragile).
+DeepSeek-v4-pro and Qwen3.7-max (97.6%), so nearly every delta below is pure attack-induced degradation. Values
+are robustness_delta (pp, higher = more fragile).
 
 | Model | semantic_inj | minimal_ctx | boundary_blur | multi_intent | cross_skill | negation |
 |---|---|---|---|---|---|---|
@@ -96,6 +96,7 @@ robustness_delta (pp, higher = more fragile).
 | Grok-4.3 | +79 | +17 | +14 | +0 | +0 | +0 |
 | GPT-5.4-mini | +88 | +36 | +12 | +7 | +0 | +0 |
 | Gemini-3.5-flash | +93 | +24 | +2 | +2 | +0 | +0 |
+| Qwen3.7-max | +98 | +19 | +2 | +5 | -2 | -2 |
 | GPT-5.4 | +98 | +29 | +17 | +19 | +5 | +0 |
 | Gemini-3.1-pro | +100 | +17 | +7 | +5 | +2 | +0 |
 
@@ -106,13 +107,14 @@ robustness_delta (pp, higher = more fragile).
 2. **It clusters by vendor, but only loosely.** Anthropic's Claude family is consistently injection-robust (Opus +0,
    Sonnet +10, Haiku +40). Everyone else is scattered. And DeepSeek is split down the middle: `deepseek-chat` shrugs
    off injection (+24) while `deepseek-v4-pro` falls apart (+74). So "DeepSeek is robust" was really "deepseek-chat is
-   robust". Robustness is a property of the specific model, not the brand.
+   robust". The same lesson repeats across Chinese models: only `deepseek-chat` resists injection, while
+   `deepseek-v4-pro` (+74) and `Qwen3.7-max` (+98) do not. Region and brand are not the axis. The specific model is.
 3. **Newer is not consistently safer, and the direction differs by vendor.** Within OpenAI, newer helped
    (GPT-5.4 +98 to GPT-5.5 +50). Within DeepSeek it went the other way (chat +24 to v4-pro +74). You cannot assume the
    next release is more robust.
 4. **No model is safe everywhere.** Injection-immune Claude Opus still loses 24 points on terse prompts. DeepSeek-chat,
    the injection standout, is the worst of all on terse prompts (+43). Pick your poison.
-5. **Nobody falls for explicit negation** (`negation_trap` is ~0 across all 11; DeepSeek-v4-pro even improves).
+5. **Nobody falls for explicit negation** (`negation_trap` is ~0 across all 12; DeepSeek-v4-pro and Qwen3.7-max even improve slightly).
 
 **Caveats.** One seed, one 42-case suite, temperature 0 (near- but not fully deterministic). The gateway may route
 model aliases to specific snapshots. Magnitudes are suite-dependent. What holds up is the cross-model ordering and the
