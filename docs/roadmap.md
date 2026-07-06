@@ -24,9 +24,10 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 - ✅ `coevo`: export failures → preference pairs / verifiable reward / SFT negatives (`loopbench coevo`). Verified on deepseek: 17 real misroutes → 17 pref pairs / 34 reward / 17 sft.
 - ✅ `self-check` variant (reflect decision node) wired through run/attack/CLI (`--variant`).
 - ✅ Provider generalized to env-injected OpenAI-compatible → multi-model breadth (deepseek + gpt/claude/gemini via any gateway; no secrets in repo).
-- 🔄 Running: 4-model breadth table (deepseek ✅ + gpt-5.4 ✅ + claude/gemini in flight) → cross-model vulnerability fingerprints. GPT-5.4 bombshell: semantic_injection 100%→2.4% (Δ+97.6pp) while deepseek only +23.8pp.
-- 🔄 Running: single vs self-check variant experiment (does reflection recover attack-induced misroutes?).
-- 🔜 `planner-subagent` variant + micro-experiment (offline reward analysis showing "feed failures back → measurable robustness gain") + harness-portability variance decomposition.
+- ✅ **F3 cross-model (10 models, 4 vendors, 3 tiers).** All 100% clean; semantic_injection spread +0 (Claude Opus-4-8, immune) → +100 (Gemini-3.1-pro, collapse). Vendor clustering: Claude/DeepSeek robust, GPT/Gemini/Grok flagships fragile. Capability ≠ robustness.
+- ✅ **F2 variant experiment** (single vs self-check): naive reflection degrades robustness (−12pp on confusion attacks, −7pp clean).
+- ✅ **① multi-step loop (F4).** New `loopbench multi`: route→act(stub obs)→stop; scores premature-stop/over-run/success. deepseek 100% single-turn routing but 60% multi-step success. Harness finding: feeding observations lifts success 10%→60%.
+- 🔜 remaining W3 stretch: `planner-subagent` variant + coevo micro-experiment (offline reward analysis) + harness-portability variance decomposition + cross-model multi-step table.
 
 ## W4 — dashboard + docs + launch materials
 - `dashboard`: Vite/React static export → GitHub Pages (leaderboard / attack×variant heatmap / trajectory viewer / delta).
