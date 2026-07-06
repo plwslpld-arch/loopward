@@ -75,3 +75,32 @@ than assuming it — a loop-design choice has a non-obvious, mostly negative eff
 tool-grounded critique). Also note: this run's `single` `minimal_context` = 54.8% vs 57.1% in F1 — the same
 config, showing `deepseek-chat` is not perfectly deterministic at temperature 0 (≈1–2 case run-to-run drift).
 The bootstrap CI captures case-sampling uncertainty but not this model stochasticity — hence the multi-seed TODO.
+
+---
+
+## F4 — Single-turn routing accuracy does not predict multi-step loop success
+
+**Setup.** `deepseek-chat`, `datasets/multistep/tasks.json` (10 tasks needing 2–3 tools each). The multi-step
+loop calls one tool at a time, feeds a stub observation ("returned ok") back each step, and the model decides
+when to stop. Scored on loop failure modes single-turn routing can't see: task success (exact required set +
+stop), premature-stop, over-run.
+
+| Metric | deepseek-chat |
+|---|---|
+| single-turn routing accuracy (F1) | **100%** |
+| multi-step task success | **60%** |
+| premature-stop | 20% |
+| over-run | 20% |
+
+**Reading it.** A model that routes perfectly single-turn (100%) completes only 60% of multi-step tasks. The
+failures are loop-specific: it stops before finishing (skips a required tool) or never stops (repeats a step).
+**Routing accuracy is not loop competence** — you only see the gap once you run a real loop.
+
+**Harness-design finding (found by verifying, not assuming).** The first version of this loop did NOT feed tool
+observations back — it only listed which tools had been called. Result: 10% success, 80% over-run, with models
+looping on the same tool. Adding a one-line stub observation ("→ returned ok") after each call lifted success
+**10% → 60%** and cut over-run **80% → 20%** — same model, same tasks, only the harness's observation design
+changed. **The harness, not just the model, determines loop success.** This is the whole thesis, shown concretely.
+
+**Caveats.** 10 tasks, single model/seed; observations are stubbed (no real tool execution); scoring is
+set-based (tool order lenient). This measures loop control (progress + stop), not tool-argument correctness.

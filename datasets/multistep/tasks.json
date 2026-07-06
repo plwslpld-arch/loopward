@@ -1,0 +1,38 @@
+{
+  "meta": {
+    "name": "multistep-v1",
+    "note": "Multi-step tasks: each needs a set of tools called (then a stop). The tool inventory per task includes distractors. Scored on the real loop failure modes single-turn routing can't see: premature-stop (stopped before done), over-run (extra/looping calls or never stops), and missteps (wrong tool). `required` is the correct tool set; order is recorded but scored leniently as a set for now."
+  },
+  "tasks": [
+    { "id": "ms-01", "task": "Email the Q3 report to Sarah, then put a follow-up reminder on my calendar for Friday.",
+      "tools": ["send_email", "send_slack_message", "create_calendar_event", "list_calendar_events", "read_file"],
+      "required": ["send_email", "create_calendar_event"] },
+    { "id": "ms-02", "task": "Pull the monthly signups from the database and turn them into a bar chart.",
+      "tools": ["run_sql_query", "export_csv", "create_chart", "filter_dataset", "search_web"],
+      "required": ["run_sql_query", "create_chart"] },
+    { "id": "ms-03", "task": "Look up the current weather in Tokyo and email it to the travel team.",
+      "tools": ["get_weather", "get_forecast", "send_email", "send_slack_message", "search_web"],
+      "required": ["get_weather", "send_email"] },
+    { "id": "ms-04", "task": "Read config.yaml and save a backup copy to config.bak.yaml.",
+      "tools": ["read_file", "write_file", "delete_file", "list_directory", "move_file"],
+      "required": ["read_file", "write_file"] },
+    { "id": "ms-05", "task": "File a GitHub issue for the login bug and notify the team on Slack.",
+      "tools": ["create_github_issue", "list_github_issues", "close_github_issue", "send_slack_message", "send_email"],
+      "required": ["create_github_issue", "send_slack_message"] },
+    { "id": "ms-06", "task": "Get my meetings for tomorrow and email the list to my assistant.",
+      "tools": ["list_calendar_events", "create_calendar_event", "cancel_calendar_event", "send_email", "send_sms"],
+      "required": ["list_calendar_events", "send_email"] },
+    { "id": "ms-07", "task": "Translate the announcement to Spanish and email it to the Madrid office.",
+      "tools": ["translate_text", "summarize_text", "proofread_text", "send_email", "send_slack_message"],
+      "required": ["translate_text", "send_email"] },
+    { "id": "ms-08", "task": "Search the web for the competitor's new pricing, then post a short summary to the #research Slack channel.",
+      "tools": ["search_web", "search_docs", "summarize_text", "send_slack_message", "send_email"],
+      "required": ["search_web", "send_slack_message"] },
+    { "id": "ms-09", "task": "Query the users table for last month's signups, export it to CSV, and email the file to finance.",
+      "tools": ["run_sql_query", "export_csv", "create_chart", "send_email", "filter_dataset"],
+      "required": ["run_sql_query", "export_csv", "send_email"] },
+    { "id": "ms-10", "task": "Read the error log, search the web for the error message, and open a GitHub issue with what you find.",
+      "tools": ["read_file", "list_directory", "search_web", "create_github_issue", "send_slack_message"],
+      "required": ["read_file", "search_web", "create_github_issue"] }
+  ]
+}

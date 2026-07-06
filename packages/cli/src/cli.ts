@@ -5,6 +5,7 @@ import { dirname } from 'node:path';
 import type { RoutingCase } from '../../core/src/types.ts';
 import { getProvider } from '../../core/src/provider.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
+import { runMultistepSuite, type MultistepTask } from '../../core/src/multistep.ts';
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
@@ -71,6 +72,27 @@ async function cmdCoevo(reportPath: string, outDir: string) {
   }
 }
 
+async function cmdMulti(suite: string, provider: string, seed: number, out: string | undefined, po: ProviderOpts) {
+  const data = JSON.parse(readFileSync(suite, 'utf8'));
+  const tasks: MultistepTask[] = Array.isArray(data) ? data : data.tasks;
+  if (!Array.isArray(tasks)) throw new Error(`suite ${suite}: expected tasks[] (or { tasks: [...] })`);
+  for (const t of tasks)
+    if (!t.id || !t.task || !Array.isArray(t.tools) || !Array.isArray(t.required))
+      throw new Error(`suite ${suite}: bad task ${JSON.stringify(t).slice(0, 80)}`);
+
+  const sum = await runMultistepSuite(tasks, getProvider(provider, po), seed);
+  const outPath = out ?? `runs/multi-${sum.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(sum, null, 2));
+
+  console.log(`provider=${sum.provider} seed=${seed}  n=${sum.total} (multi-step loop)`);
+  console.log(`task success:      ${pct(sum.success_rate)}`);
+  console.log(`premature-stop:    ${pct(sum.premature_stop_rate)}`);
+  console.log(`over-run:          ${pct(sum.over_run_rate)}`);
+  console.log(`avg extra calls:   ${sum.avg_extra_calls.toFixed(2)}`);
+  console.log(`results → ${outPath}`);
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -94,6 +116,7 @@ async function main() {
 
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po, variant);
+  else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po);
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
@@ -101,6 +124,7 @@ async function main() {
     console.error('usage:');
     console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
     console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
+    console.error('  loopbench multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
     console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');
     console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
     process.exit(1);
