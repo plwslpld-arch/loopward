@@ -39,3 +39,24 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 - Do not build a self-authored executable real-task benchmark with an oracle judge (collides with Harness-Bench, hits weak spots, sinks the timeline).
 - Do not claim "first to evaluate routing robustness."
 - Do not mention DeepSeek / job search / any employer in public materials.
+
+---
+
+## Productization (from eval to a usable tool) — the B-tier plan
+
+Decision: LoopBench's durable value is the **tool**, not the findings (findings are content that ages).
+Ship it as a **TS npm package** (CLI + library, `npx`-runnable) that runs against a user's OWN tools.
+promptfoo integration is dropped from the critical path (optional, only if adoption later stalls).
+
+- **P1 — Bring-Your-Own-Tools (the dividing line).** `--tools <schema.json>` (OpenAI/Anthropic tool format)
+  or `--mcp <url>`. Two modes:
+  - `loopbench audit --tools t.json` — deterministic, no model calls: flags confusable tool pairs
+    (name/description similarity) before you ship. Instant value.
+  - `loopbench attack --tools t.json --provider ... --model ...` — auto-synthesize a canonical intent per
+    tool, then run the 6-attack robustness eval on the user's own catalog + coevo export.
+- **P2 — CI gate.** `--fail-under <threshold>` exit code + a thin GitHub Action wrapper.
+- **P3 — Packaging.** Collapse to a publishable `loopbench` package (CLI + lib dual entry), `npx loopbench`,
+  README quickstart, real docs. `@types/node`/CI green.
+- **P4 — Landing + reach.** Dashboard reframed as a tool landing page (not just findings). Media: 掘金 quickstart,
+  Show HN, awesome-list PRs.
+- **Optional.** Claude Code skill / MCP wrapper as secondary distribution.
