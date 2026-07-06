@@ -176,11 +176,11 @@ async function main() {
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
   } else {
     console.error('usage:');
-    console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
-    console.error('  loopbench attack --suite <f.json> | --tools <schema.json>  [--provider ...] [--model M] [--variant ...] [--seed 42] [--out f]');
-    console.error('  loopbench multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
-    console.error('  loopbench audit  --tools <schema.json>   (bring your own tools; no model calls)');
-    console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');
+    console.error('  loopward run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
+    console.error('  loopward attack --suite <f.json> | --tools <schema.json>  [--provider ...] [--model M] [--variant ...] [--seed 42] [--out f]');
+    console.error('  loopward multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
+    console.error('  loopward audit  --tools <schema.json>   (bring your own tools; no model calls)');
+    console.error('  loopward coevo  --report <attack-report.json> [--out coevo-out]');
     console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
     process.exit(1);
   }

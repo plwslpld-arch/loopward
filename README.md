@@ -1,9 +1,9 @@
 <!--
   Clean-room project. No prior-employer or third-party source, data, or naming. See PROVENANCE.md.
-  Working title "LoopBench" is pending a name-collision check before any public launch.
+  Working title "Loopward" is pending a name-collision check before any public launch.
 -->
 
-# LoopBench
+# Loopward
 
 Point it at your agent's tools and it tells you which ones the router will mix up, how badly a one-line
 prompt tweak breaks routing, and it hands you the failures back as training data. Everyone is designing agent
@@ -19,13 +19,13 @@ No install, no build. Needs Node 24+ (native TypeScript).
 
 ```bash
 # 1) Which of your tools will confuse the router? Deterministic, no API key, instant.
-npx loopbench audit --tools ./my-tools.json
+npx loopward audit --tools ./my-tools.json
 
 # 2) Stress-test routing on your own tools with a real model (6 attacks + confidence intervals).
-OPENAI_API_KEY=sk-... npx loopbench attack --tools ./my-tools.json --provider openai --model gpt-5.5
+OPENAI_API_KEY=sk-... npx loopward attack --tools ./my-tools.json --provider openai --model gpt-5.5
 
 # 3) Turn the failures into DPO / reward / SFT training data.
-npx loopbench coevo --report runs/attack-*.json --out ./coevo-out
+npx loopward coevo --report runs/attack-*.json --out ./coevo-out
 ```
 
 `--tools` takes an OpenAI or Anthropic tool schema (or a plain `[{name, description}]` list).
@@ -48,8 +48,8 @@ in the repo. Point `OPENAI_BASE_URL` at your gateway of choice.
 ## Gate it in CI
 
 ```bash
-npx loopbench audit  --tools ./tools.json --fail-on-high            # fast, no key
-npx loopbench attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
+npx loopward audit  --tools ./tools.json --fail-on-high            # fast, no key
+npx loopward attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
 ```
 
 Both exit non-zero when the threshold is breached. Full setup in [`docs/ci.md`](./docs/ci.md).
@@ -57,7 +57,7 @@ Both exit non-zero when the threshold is breached. Full setup in [`docs/ci.md`](
 ## What this is not
 
 Not a leaderboard, not a safety audit, not a loop *runner* you ship to production. It is a diagnostic for the
-routing and stopping decisions inside a loop. LoopBench does not claim to be the first tool to evaluate tool
+routing and stopping decisions inside a loop. Loopward does not claim to be the first tool to evaluate tool
 selection. See [`RELATED-WORK.md`](./RELATED-WORK.md) for an honest comparison with CATS/ToolCert, MetaTool, and
 Harness-Bench, and the specific delta.
 

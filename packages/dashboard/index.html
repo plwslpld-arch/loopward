@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LoopBench: routing robustness</title>
+<title>Loopward: routing robustness</title>
 <style>
   :root {
     --bg: #f6f7f9; --panel: #ffffff; --line: #e5e8ec; --ink: #171b22; --muted: #616b7a;
@@ -81,7 +81,7 @@
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="brand">LoopBench</div>
+      <div class="brand">Loopward</div>
       <h1 id="t-h1"></h1>
       <p class="tagline" id="t-tag"></p>
       <span class="pill" id="meta"></span>
@@ -376,7 +376,7 @@ const T = {
     s3bh:"One good route is not a finished task",
     s3bs:"DeepSeek routes perfectly in a single turn. Real multi-step tasks are another story, and the harness decides how much.",
     s3bc:"Feeding the tool result back after each step took success from 10% to 60%. Same model, same tasks. The only thing that changed was the harness.",
-    fp:'Scored with a deterministic ground-truth oracle, no LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, paired bootstrap 95% intervals. Reproduce a row with <code>loopbench attack --tools your-tools.json --provider openai --model &lt;name&gt;</code>.',
+    fp:'Scored with a deterministic ground-truth oracle, no LLM judge. 42 cases across 10 tool families, temperature 0, seed 42, paired bootstrap 95% intervals. Reproduce a row with <code>loopward attack --tools your-tools.json --provider openai --model &lt;name&gt;</code>.',
     fc:"Read this as a pilot, not a verdict. One seed, one 42-case suite, one gateway (aliases may resolve to specific snapshots). Treat the exact numbers as suite-dependent. What holds up is the ordering between models and the per-model story. This probes routing robustness. It is not a safety audit or a leaderboard.",
     attack:{ semantic_injection:"injection", minimal_context:"terse prompt", boundary_blur:"lookalike names", multi_intent:"two requests", cross_skill_confusion:"overlapping tools", negation_trap:"do-not-use X" },
     multi:["1-shot routing","multi-step done","stopped too early","never stopped"],
@@ -400,7 +400,7 @@ const T = {
     s3bh:"选对一步,不等于任务完成",
     s3bs:"DeepSeek 单步选工具满分。真实的多步任务是另一回事,而且 harness 决定差多少。",
     s3bc:"每步把工具结果回传给模型,成功率从 10% 提到 60%。同一个模型、同样的任务,变的只有 harness。",
-    fp:'用确定性 ground-truth 判分,不用 LLM 当裁判。42 条用例、10 个工具族,temperature 0,seed 42,配对 bootstrap 95% 区间。复现一行:<code>loopbench attack --tools your-tools.json --provider openai --model &lt;名字&gt;</code>。',
+    fp:'用确定性 ground-truth 判分,不用 LLM 当裁判。42 条用例、10 个工具族,temperature 0,seed 42,配对 bootstrap 95% 区间。复现一行:<code>loopward attack --tools your-tools.json --provider openai --model &lt;名字&gt;</code>。',
     fc:"当它是 pilot,不是定论。单 seed、单 42 条用例、单网关(别名可能指向特定快照)。具体数值随用例集变。站得住的是模型之间的排序和 per-model 的故事。这是路由鲁棒性的探针,不是安全审计,也不是排行榜。",
     attack:{ semantic_injection:"注入", minimal_context:"话太短", boundary_blur:"撞名工具", multi_intent:"两件事", cross_skill_confusion:"功能重叠", negation_trap:"否定 X" },
     multi:["单步路由","多步完成","停太早","停不下来"],

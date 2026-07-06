@@ -1,12 +1,12 @@
 # Related Work
 
-LoopBench is **not** the first tool to evaluate tool/skill selection. This file states, honestly, what
-exists and what LoopBench's specific delta is. (Being explicit about prior art is both intellectually
+Loopward is **not** the first tool to evaluate tool/skill selection. This file states, honestly, what
+exists and what Loopward's specific delta is. (Being explicit about prior art is both intellectually
 honest and evidence that this is a clean-room re-derivation from the public literature.)
 
 ## Prior art (tool selection / routing / harness eval)
 
-| Work | What it does | What it does NOT do (LoopBench's gap) |
+| Work | What it does | What it does NOT do (Loopward's gap) |
 |---|---|---|
 | **MetaTool** | Benchmark for whether an LLM *should* use a tool + which tool; tool-selection reliability | No adversarial/benign-ambiguous perturbation at the loop decision point; no loop-variant comparison; no training-signal export |
 | **CATS / ToolCert** | Candidate-pool poisoning, top-N saturation, statistical certification of tool selection | Focus on certification of static selection; not loop stop/route decision robustness across harnesses |
@@ -22,7 +22,7 @@ honest and evidence that this is a clean-room re-derivation from the public lite
 - *Scaling Enterprise Agent Routing: Degradation, Diagnosis, and Recovery* (arXiv 2606.17519)
 - MCP tool-overload / context-bloat public write-ups (2026)
 
-## LoopBench's specific delta (what to claim, and only this)
+## Loopward's specific delta (what to claim, and only this)
 
 1. Adversarial + **benign-but-ambiguous** perturbation injected at the loop's **route** and **stop** decision points.
 2. **Harness-portability** variance decomposition (same suite, ≥2 real harnesses) — routing robustness as a harness property.

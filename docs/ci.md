@@ -1,6 +1,6 @@
 # Gate your agent's routing in CI
 
-LoopBench commands exit non-zero when a threshold is breached, so you can block a merge that makes
+Loopward commands exit non-zero when a threshold is breached, so you can block a merge that makes
 your agent's tool routing worse.
 
 ## Fast gate, no API key
@@ -8,7 +8,7 @@ your agent's tool routing worse.
 Catch confusable tool names before they ship. Deterministic, runs in milliseconds.
 
 ```bash
-npx loopbench audit --tools ./tools.json --fail-on-high
+npx loopward audit --tools ./tools.json --fail-on-high
 # exits 1 if any HIGH-risk confusable pair exists (e.g. get_status vs fetch_status)
 ```
 
@@ -18,14 +18,14 @@ Synthesize a test intent per tool, run the six attacks, and fail if the worst at
 below your floor.
 
 ```bash
-npx loopbench attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
+npx loopward attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
 # exits 1 if any attack pushes routing accuracy under 70%
 ```
 
 Multi-step tasks have their own gate:
 
 ```bash
-npx loopbench multi --suite ./tasks.json --provider openai --model gpt-5.5 --fail-under 80
+npx loopward multi --suite ./tasks.json --provider openai --model gpt-5.5 --fail-under 80
 # exits 1 if multi-step task success is under 80%
 ```
 
@@ -35,7 +35,7 @@ npx loopbench multi --suite ./tasks.json --provider openai --model gpt-5.5 --fai
 name: routing-robustness
 on: [pull_request]
 jobs:
-  loopbench:
+  loopward:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,9 +43,9 @@ jobs:
         with:
           node-version: "24"
       # fast, no secret needed:
-      - run: npx loopbench audit --tools ./tools.json --fail-on-high
+      - run: npx loopward audit --tools ./tools.json --fail-on-high
       # full gate (add OPENAI_API_KEY as a repo secret):
-      - run: npx loopbench attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
+      - run: npx loopward attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 ```

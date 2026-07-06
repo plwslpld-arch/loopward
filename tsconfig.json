@@ -9,7 +9,7 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "lib": ["ES2023"]
+    "lib": ["ES2023", "DOM"]
   },
   "include": ["packages/*/src/**/*.ts"]
 }

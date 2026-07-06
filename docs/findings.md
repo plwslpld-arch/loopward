@@ -1,6 +1,6 @@
 # Findings
 
-> Reproducible results produced by LoopBench. Each is regenerable from the exact command listed.
+> Reproducible results produced by Loopward. Each is regenerable from the exact command listed.
 > These are **pilot-grade** results (single model, single seed, one suite) — the shape is real; breadth
 > caveats are stated per finding. Do not overstate them.
 
@@ -11,7 +11,7 @@ temperature 0, seed 42. Deterministic RoutingOracle. Robustness delta = clean_ac
 paired case-level bootstrap 95% CI (2000 resamples).
 
 ```
-loopbench attack --suite datasets/routing/tools.json --provider deepseek --seed 42
+loopward attack --suite datasets/routing/tools.json --provider deepseek --seed 42
 ```
 
 **Result.** Clean routing accuracy = **100%** (42/42). Under six intent-side perturbations:

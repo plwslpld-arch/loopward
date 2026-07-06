@@ -14,19 +14,19 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 ## W2 — adversarial + robustness metrics  (core DONE; MVP line needs a real-model run)
 - ✅ `redteam`: 6 attack classes (deterministic intent-side transforms, each with public-source tag) + attack-runner.
 - ✅ metrics: accuracy / misroute_rate / robustness_delta + paired bootstrap 95% CI (seeded, reproducible). (over-run / premature-stop need multi-step → W3.)
-- ✅ `loopbench attack` → per-attack acc + delta + CI table, heatmap-ready matrix (attack × case) JSON.
+- ✅ `loopward attack` → per-attack acc + delta + CI table, heatmap-ready matrix (attack × case) JSON.
 - ⏭️ `self-check` variant deferred to W3: with the mock a 2nd variant is contrived; it's only a meaningful comparison against a reasoning provider.
 - ✅ **First real finding (F1, see docs/findings.md).** `deepseek-chat` on the 42-case `tools.json`: 100% clean, but 5/6 attacks drop it 12–43pp with CIs excluding zero. Counter-intuitive ranking: `minimal_context` + `boundary_blur` dominate; `negation_trap` is null. Pilot-grade (1 model / 1 seed / 1 suite).
-- **Verify (done):** `loopbench attack --suite datasets/routing/tools.json --provider deepseek` → 6-row delta+CI table + docs/findings.md.
+- **Verify (done):** `loopward attack --suite datasets/routing/tools.json --provider deepseek` → 6-row delta+CI table + docs/findings.md.
 - 🔜 To make F1 publishable: ≥2 models + ≥3 seeds + per-family breakdown + the `self-check` variant (moved here from the deferred list).
 
 ## W3 — co-evolution loop + variants + breadth  (the soul — do not cut)
-- ✅ `coevo`: export failures → preference pairs / verifiable reward / SFT negatives (`loopbench coevo`). Verified on deepseek: 17 real misroutes → 17 pref pairs / 34 reward / 17 sft.
+- ✅ `coevo`: export failures → preference pairs / verifiable reward / SFT negatives (`loopward coevo`). Verified on deepseek: 17 real misroutes → 17 pref pairs / 34 reward / 17 sft.
 - ✅ `self-check` variant (reflect decision node) wired through run/attack/CLI (`--variant`).
 - ✅ Provider generalized to env-injected OpenAI-compatible → multi-model breadth (deepseek + gpt/claude/gemini via any gateway; no secrets in repo).
 - ✅ **F3 cross-model (10 models, 4 vendors, 3 tiers).** All 100% clean; semantic_injection spread +0 (Claude Opus-4-8, immune) → +100 (Gemini-3.1-pro, collapse). Vendor clustering: Claude/DeepSeek robust, GPT/Gemini/Grok flagships fragile. Capability ≠ robustness.
 - ✅ **F2 variant experiment** (single vs self-check): naive reflection degrades robustness (−12pp on confusion attacks, −7pp clean).
-- ✅ **① multi-step loop (F4).** New `loopbench multi`: route→act(stub obs)→stop; scores premature-stop/over-run/success. deepseek 100% single-turn routing but 60% multi-step success. Harness finding: feeding observations lifts success 10%→60%.
+- ✅ **① multi-step loop (F4).** New `loopward multi`: route→act(stub obs)→stop; scores premature-stop/over-run/success. deepseek 100% single-turn routing but 60% multi-step success. Harness finding: feeding observations lifts success 10%→60%.
 - 🔜 remaining W3 stretch: `planner-subagent` variant + coevo micro-experiment (offline reward analysis) + harness-portability variance decomposition + cross-model multi-step table.
 
 ## W4 — dashboard + docs + launch materials
@@ -44,18 +44,18 @@ Ship nothing publicly until MVP is reached (a shallow demo backfires).
 
 ## Productization (from eval to a usable tool) — the B-tier plan
 
-Decision: LoopBench's durable value is the **tool**, not the findings (findings are content that ages).
+Decision: Loopward's durable value is the **tool**, not the findings (findings are content that ages).
 Ship it as a **TS npm package** (CLI + library, `npx`-runnable) that runs against a user's OWN tools.
 promptfoo integration is dropped from the critical path (optional, only if adoption later stalls).
 
 - **P1 — Bring-Your-Own-Tools (the dividing line).** `--tools <schema.json>` (OpenAI/Anthropic tool format)
   or `--mcp <url>`. Two modes:
-  - `loopbench audit --tools t.json` — deterministic, no model calls: flags confusable tool pairs
+  - `loopward audit --tools t.json` — deterministic, no model calls: flags confusable tool pairs
     (name/description similarity) before you ship. Instant value.
-  - `loopbench attack --tools t.json --provider ... --model ...` — auto-synthesize a canonical intent per
+  - `loopward attack --tools t.json --provider ... --model ...` — auto-synthesize a canonical intent per
     tool, then run the 6-attack robustness eval on the user's own catalog + coevo export.
 - **P2 — CI gate.** `--fail-under <threshold>` exit code + a thin GitHub Action wrapper.
-- **P3 — Packaging.** Collapse to a publishable `loopbench` package (CLI + lib dual entry), `npx loopbench`,
+- **P3 — Packaging.** Collapse to a publishable `loopward` package (CLI + lib dual entry), `npx loopward`,
   README quickstart, real docs. `@types/node`/CI green.
 - **P4 — Landing + reach.** Dashboard reframed as a tool landing page (not just findings). Media: 掘金 quickstart,
   Show HN, awesome-list PRs.

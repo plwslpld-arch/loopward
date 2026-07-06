@@ -1,4 +1,4 @@
-// Core data shapes for LoopBench. Kept deliberately small for W1 (routing-only).
+// Core data shapes for Loopward. Kept deliberately small for W1 (routing-only).
 
 /** One routing test case with deterministic ground truth. */
 export interface RoutingCase {
