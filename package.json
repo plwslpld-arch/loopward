@@ -9,7 +9,7 @@
   "packageManager": "pnpm@9.0.0",
   "engines": { "node": ">=24" },
   "scripts": {
-    "test": "node packages/core/src/selfcheck.ts && node packages/redteam/src/selfcheck.ts && node packages/coevo/src/selfcheck.ts && node packages/eval/src/selfcheck.ts && node packages/coevo/experiments/micro-loop/selfcheck.ts",
+    "test": "node packages/core/src/selfcheck.ts && node packages/redteam/src/selfcheck.ts && node packages/coevo/src/selfcheck.ts && node packages/eval/src/selfcheck.ts && node packages/coevo/experiments/micro-loop/selfcheck.ts && node packages/eval/src/stats/selfcheck.ts",
     "loopward": "node packages/cli/src/cli.ts",
     "dashboard": "node packages/dashboard/build.mjs",
     "regenerate-all": "node scripts/regenerate-all.mjs"

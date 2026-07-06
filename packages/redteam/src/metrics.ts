@@ -43,4 +43,4 @@ export function bootstrapDeltaCI(clean: number[], attack: number[], seed = 42, B
   return { delta: point, lo: pct(0.025), hi: pct(0.975) };
 }
 
-export { mean };
+export { mean, rng };

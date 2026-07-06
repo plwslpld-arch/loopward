@@ -15,6 +15,7 @@ import { gitSha, type StampInput } from '../../core/src/manifest.ts';
 import { verifyReport, formatVerify } from '../../eval/src/verify.ts';
 import { harnessMatrix, DEFAULT_STRATEGIES } from '../../eval/src/harness-portability/harness-matrix.ts';
 import { runFlywheel } from '../../coevo/experiments/micro-loop/flywheel.ts';
+import { correctAttacks } from '../../eval/src/stats/multiseed.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -219,6 +220,21 @@ async function cmdFlywheel(suite: string | undefined, toolsPath: string | undefi
   console.log(`receipt → ${outPath}`);
 }
 
+function cmdStats(reportPath: string) {
+  const rep = JSON.parse(readFileSync(reportPath, 'utf8')) as AttackReport;
+  const c = correctAttacks(rep);
+  console.log(`provider=${c.provider} seed=${c.seed}  alpha=${c.alpha}\n`);
+  console.log('attack                  delta     95% CI               p      Holm-p   dz     sig');
+  console.log('─'.repeat(84));
+  for (const a of [...c.attacks].sort((x, y) => y.delta - x.delta)) {
+    console.log(
+      `${a.attack.padEnd(22)} ${pp(a.delta).padStart(7)}  [${pp(a.ci.lo)}, ${pp(a.ci.hi)}]  ` +
+        `${a.p.toFixed(3)}  ${a.p_holm.toFixed(3)}  ${a.dz.toFixed(2).padStart(5)}  ${a.significant ? 'yes' : 'no'}`,
+    );
+  }
+  console.log(`\n${c.note}`);
+}
+
 function cmdVerify(reportPath: string) {
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
   const result = verifyReport(report);
@@ -323,6 +339,7 @@ async function main() {
   else if (cmd === 'flywheel') await cmdFlywheel(values.suite, values.tools, values.provider!, seed, values.ratio !== undefined ? Number(values.ratio) : 0.5, values.out, po);
   else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
   else if (cmd === 'verify') { const path = values.report ?? positionals[1]; if (!path) throw new Error('verify needs --report <report.json>'); cmdVerify(path); }
+  else if (cmd === 'stats') { const path = values.report ?? positionals[1]; if (!path) throw new Error('stats needs --report <attack-report.json>'); cmdStats(path); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
@@ -335,6 +352,7 @@ async function main() {
     console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
     console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
     console.error('  flywheel --tools <schema.json> | --suite <f.json> train guardrail, re-measure held-out lift');
+    console.error('  stats  --report <attack-report.json>              Holm-corrected significance across the 6 attacks');
     console.error('  verify --report <report.json>                     re-check a report\'s deterministic fields, offline');
     console.error('  run    --suite <f.json>                           clean routing accuracy only');
     console.error(`  common: [--provider ${PROVIDER_NAMES.join('|')}] [--model M] [--base-url URL] [--seed 42] [--out f]`);
