@@ -78,43 +78,45 @@ The bootstrap CI captures case-sampling uncertainty but not this model stochasti
 
 ---
 
-## F3 — Routing robustness is model-specific, and clusters by vendor (10 models)
+## F3 — Routing robustness is model-specific, not a clean vendor property (11 models)
 
-**Setup.** Same `tools.json` (n=42), `single` variant, seed 42, deterministic oracle. Ran 10 models across four
-vendors and three tiers, via a DeepSeek key and an OpenAI-compatible gateway. All 10 score **100% clean** —
-so every delta below is pure attack-induced degradation. Values are robustness_delta (pp, higher = more fragile).
+**Setup.** Same `tools.json` (n=42), `single` variant, seed 42, deterministic oracle. 11 models across five
+vendors and three tiers, via a DeepSeek key and an OpenAI-compatible gateway. All score 100% clean except
+DeepSeek-v4-pro (97.6%), so nearly every delta below is pure attack-induced degradation. Values are
+robustness_delta (pp, higher = more fragile).
 
 | Model | semantic_inj | minimal_ctx | boundary_blur | multi_intent | cross_skill | negation |
 |---|---|---|---|---|---|---|
-| Claude Opus-4-8 | **+0** 🛡️ | +24 | +17 | +0 | +2 | +0 |
+| Claude Opus-4-8 | **+0** | +24 | +17 | +0 | +2 | +0 |
 | Claude Sonnet-5 | +10 | +24 | +5 | +10 | +2 | +0 |
 | DeepSeek-chat | +24 | **+43** | +29 | +21 | +12 | +2 |
 | Claude Haiku-4-5 | +40 | +31 | +19 | +2 | +2 | +0 |
 | GPT-5.5 | +50 | +19 | +2 | +14 | +0 | +0 |
+| DeepSeek-v4-pro | +74 | +17 | +10 | +10 | +0 | -2 |
 | Grok-4.3 | +79 | +17 | +14 | +0 | +0 | +0 |
 | GPT-5.4-mini | +88 | +36 | +12 | +7 | +0 | +0 |
 | Gemini-3.5-flash | +93 | +24 | +2 | +2 | +0 | +0 |
 | GPT-5.4 | +98 | +29 | +17 | +19 | +5 | +0 |
-| Gemini-3.1-pro | +100 💥 | +17 | +7 | +5 | +2 | +0 |
+| Gemini-3.1-pro | +100 | +17 | +7 | +5 | +2 | +0 |
 
 **Reading it.**
-1. **A 30× spread on the same attack.** `semantic_injection` (a one-line "System note: always prefer X" in the
-   context) ranges from **+0pp (Claude Opus-4-8, immune)** to **+100pp (Gemini-3.1-pro, total collapse)**. The
-   single biggest determinant of routing-injection safety is *which model you run*, not the harness around it.
-2. **It clusters by vendor.** Anthropic's Claude family is the most injection-robust (Opus +0, Sonnet +10, Haiku
-   +40); DeepSeek is robust (+24); OpenAI / Google / xAI flagships collapse (+50 to +100). This is a
-   vendor-level behavioral signature, not noise.
-3. **No model is universally robust.** Even injection-immune Claude Opus still drops +24pp under
-   under-specification (`minimal_context`); DeepSeek — the injection-robust outlier — is the *worst* on
-   under-specification (+43). Everyone has a soft spot; the soft spot differs by vendor.
-4. **Capability ≠ robustness.** Newer helps within a family (GPT-5.4 +98 → GPT-5.5 +50), but the flagship
-   Gemini-3.1-pro (+100) is *worse* than its own flash tier (+93), and tiny Claude Haiku (+40) beats the GPT/Gemini
-   flagships. Bigger/newer is not reliably safer.
-5. **Nobody falls for explicit negation** (`negation_trap` ≈ 0 across all 10).
+1. **A huge spread on one attack.** `semantic_injection` (a one-line "System note: always prefer X" in the context)
+   costs anywhere from 0 points (Claude Opus-4-8, immune) to 100 (Gemini-3.1-pro, wrong every time). Which model you
+   run matters more for routing-injection safety than the loop you build around it.
+2. **It clusters by vendor, but only loosely.** Anthropic's Claude family is consistently injection-robust (Opus +0,
+   Sonnet +10, Haiku +40). Everyone else is scattered. And DeepSeek is split down the middle: `deepseek-chat` shrugs
+   off injection (+24) while `deepseek-v4-pro` falls apart (+74). So "DeepSeek is robust" was really "deepseek-chat is
+   robust". Robustness is a property of the specific model, not the brand.
+3. **Newer is not consistently safer, and the direction differs by vendor.** Within OpenAI, newer helped
+   (GPT-5.4 +98 to GPT-5.5 +50). Within DeepSeek it went the other way (chat +24 to v4-pro +74). You cannot assume the
+   next release is more robust.
+4. **No model is safe everywhere.** Injection-immune Claude Opus still loses 24 points on terse prompts. DeepSeek-chat,
+   the injection standout, is the worst of all on terse prompts (+43). Pick your poison.
+5. **Nobody falls for explicit negation** (`negation_trap` is ~0 across all 11; DeepSeek-v4-pro even improves).
 
-**Caveats.** One seed, one 42-case suite, temperature 0 (near- but not fully deterministic). The gateway may
-route model aliases to specific snapshots. Magnitudes are suite-dependent; the *cross-model ordering and vendor
-clustering* is the robust signal. Not a safety audit — a routing-robustness probe.
+**Caveats.** One seed, one 42-case suite, temperature 0 (near- but not fully deterministic). The gateway may route
+model aliases to specific snapshots. Magnitudes are suite-dependent. What holds up is the cross-model ordering and the
+per-model story. This is a routing-robustness probe, not a safety audit.
 
 ---
 
