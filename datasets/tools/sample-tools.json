@@ -1,0 +1,14 @@
+{
+  "tools": [
+    { "type": "function", "function": { "name": "get_status", "description": "Get the current status of a service or job." } },
+    { "type": "function", "function": { "name": "fetch_status", "description": "Fetch the latest status for a given resource." } },
+    { "type": "function", "function": { "name": "query_status", "description": "Query the status history of a resource over time." } },
+    { "type": "function", "function": { "name": "send_email", "description": "Send an email message to a recipient." } },
+    { "type": "function", "function": { "name": "send_message", "description": "Send a chat message to a user or channel." } },
+    { "type": "function", "function": { "name": "get_user", "description": "Get a user record by id." } },
+    { "type": "function", "function": { "name": "get_user_profile", "description": "Get the full profile for a user by id." } },
+    { "type": "function", "function": { "name": "create_invoice", "description": "Create a new invoice for a customer." } },
+    { "type": "function", "function": { "name": "refund_payment", "description": "Issue a refund for a completed payment." } },
+    { "type": "function", "function": { "name": "translate_text", "description": "Translate text from one language to another." } }
+  ]
+}

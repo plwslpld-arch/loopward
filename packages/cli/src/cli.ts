@@ -6,6 +6,7 @@ import type { RoutingCase } from '../../core/src/types.ts';
 import { getProvider } from '../../core/src/provider.ts';
 import { runSuite, type Variant } from '../../core/src/loop.ts';
 import { runMultistepSuite, type MultistepTask } from '../../core/src/multistep.ts';
+import { loadTools, auditConfusability } from '../../core/src/tools.ts';
 import { runAttacks, type AttackReport } from '../../redteam/src/attack-run.ts';
 import { buildExport, toFiles } from '../../coevo/src/export.ts';
 
@@ -93,6 +94,21 @@ async function cmdMulti(suite: string, provider: string, seed: number, out: stri
   console.log(`results → ${outPath}`);
 }
 
+function cmdAudit(toolsPath: string) {
+  const tools = loadTools(toolsPath);
+  const pairs = auditConfusability(tools);
+  console.log(`audited ${tools.length} tools, found ${pairs.length} confusable pair(s) (no model calls)\n`);
+  if (!pairs.length) { console.log('no obviously confusable tool pairs. nice catalog.'); return; }
+  console.log('risk   pair                                        shared');
+  console.log('─'.repeat(70));
+  for (const p of pairs) {
+    const risk = p.score >= 0.5 ? 'HIGH' : p.score >= 0.34 ? 'med ' : 'low ';
+    const pair = `${p.a} ~ ${p.b}`;
+    console.log(`${risk}  ${pair.slice(0, 42).padEnd(42)}  ${p.sharedTokens.join(', ') || '(similar descriptions)'}`);
+  }
+  console.log(`\nthese pairs are the ones a router is most likely to mix up. rename, merge, or disambiguate descriptions.`);
+}
+
 async function main() {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
@@ -105,6 +121,7 @@ async function main() {
       out: { type: 'string', short: 'o' },
       report: { type: 'string', short: 'r' },
       variant: { type: 'string', short: 'v', default: 'single' },
+      tools: { type: 'string', short: 't' },
     },
   });
   const cmd = positionals[0];
@@ -117,6 +134,7 @@ async function main() {
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'attack') await cmdAttack(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po);
+  else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
@@ -125,6 +143,7 @@ async function main() {
     console.error('  loopbench run    --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
     console.error('  loopbench attack --suite <f.json> [--provider mock|deepseek|openai] [--model M] [--variant single|self-check] [--seed 42] [--out f]');
     console.error('  loopbench multi  --suite <tasks.json> [--provider mock|deepseek|openai] [--model M] [--seed 42] [--out f]');
+    console.error('  loopbench audit  --tools <schema.json>   (bring your own tools; no model calls)');
     console.error('  loopbench coevo  --report <attack-report.json> [--out coevo-out]');
     console.error('  keys via env: DEEPSEEK_API_KEY | OPENAI_API_KEY (+ OPENAI_BASE_URL, OPENAI_MODEL)');
     process.exit(1);

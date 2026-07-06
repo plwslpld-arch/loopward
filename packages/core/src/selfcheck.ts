@@ -5,6 +5,7 @@ import { scoreRoute } from './oracle.ts';
 import { mockProvider } from './provider.ts';
 import { runSuite } from './loop.ts';
 import { runMultistep, runMultistepSuite, type MultistepTask } from './multistep.ts';
+import { auditConfusability, type Tool } from './tools.ts';
 
 // oracle: exact, case-insensitive
 assert.equal(scoreRoute('get_weather', 'get_weather').correct, true);
@@ -56,4 +57,15 @@ const ms = await runMultistepSuite(detTasks, mockProvider, 42);
 assert.ok(ms.success_rate >= 0 && ms.success_rate <= 1);
 assert.ok(ms.over_run_rate >= 0 && ms.over_run_rate <= 1);
 
-console.log(`selfcheck OK — single ${(r1.accuracy * 100).toFixed(1)}% / self-check ${(sc.accuracy * 100).toFixed(1)}% routing; multi-step terminates & scores`);
+// bring-your-own-tools audit: flags confusable pairs, leaves distinct ones alone
+const toolset: Tool[] = [
+  { name: 'get_status', description: 'Get the status of a service.' },
+  { name: 'fetch_status', description: 'Fetch the status of a resource.' },
+  { name: 'translate_text', description: 'Translate text to another language.' },
+];
+const pairs = auditConfusability(toolset);
+assert.ok(pairs.length >= 1, 'expected get_status ~ fetch_status to be flagged');
+assert.equal(pairs[0].sharedTokens.includes('status'), true);
+assert.ok(!pairs.some((p) => p.a === 'translate_text' || p.b === 'translate_text'), 'distinct tool should not be flagged');
+
+console.log(`selfcheck OK — routing ${(r1.accuracy * 100).toFixed(1)}%/${(sc.accuracy * 100).toFixed(1)}%; multi-step scores; tool audit flags ${pairs.length} pair(s)`);
