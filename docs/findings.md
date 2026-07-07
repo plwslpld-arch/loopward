@@ -158,3 +158,34 @@ changed. **The harness, not just the model, determines loop success.** This is t
 
 **Caveats.** 10 tasks, single model/seed; observations are stubbed (no real tool execution); scoring is
 set-based (tool order lenient). This measures loop control (progress + stop), not tool-argument correctness.
+
+---
+
+## F5 — The harness effect is model-specific: self-check helps one model and hurt another
+
+**Setup.** `loopward matrix`: the same six attacks run through four loop strategies on a *fixed* model,
+`datasets/routing/sample.json` (n=12), seed 42. Attacked accuracy is pooled over the six attacks; deltas
+between strategies are case-level paired bootstrap 95% CIs.
+
+```
+loopward matrix --suite datasets/routing/sample.json --provider openai --model <glm-5.1>
+```
+
+| Strategy (GLM-5.1) | clean | attacked | Δ vs single |
+|---|---|---|---|
+| single | 100% | 79.2% | — |
+| self-check | 100% | 86.1% | **+6.9pp** [+2.8, +11.1] |
+| react | 100% | 79.2% | +0.0pp |
+| observe | 100% | 86.1% | +6.9pp [+2.8, +11.1] |
+
+**Reading it.** On GLM-5.1, adding a self-check reflect node **recovers** 6.9 points of attacked routing
+accuracy and the CI excludes 0. But F2 found that same self-check node **degrades** deepseek-chat (−12pp on
+the confusion attacks, −7pp clean). Same loop upgrade, opposite sign, decided by the model. **Whether a
+harness change helps is a property of the model-and-harness pair, not the harness alone** — which is the
+whole reason to *measure* it (`matrix`) rather than assume it. Holding the model fixed and varying the
+harness is the axis a model-vs-model leaderboard cannot see.
+
+**Caveats.** One model on each side, one seed, small suites (n=12 here vs n=42 for F2, and different suites,
+so this is a qualitative cross-finding, not a paired comparison). Strategy levels are not mechanistically
+independent (self-check and observe both re-feed a prior pick, and here they tie). The sign and the
+CI-excludes-0 conclusion are the signal; the exact magnitude is suite- and model-dependent.
