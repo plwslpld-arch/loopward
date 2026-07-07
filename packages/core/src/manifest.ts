@@ -13,9 +13,14 @@ export const ORACLE_VERSION = 'route-exact-v1';
 let _version: string | undefined;
 function readVersion(): string {
   if (_version !== undefined) return _version;
-  try {
-    _version = (JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')).version as string) || '0.0.0';
-  } catch { _version = '0.0.0'; } // moved/published layout: degrade, never crash the importer
+  // src tree puts package.json 3 levels up; the compiled dist adds one more — try both, then give up.
+  for (const up of ['../../../package.json', '../../../../package.json']) {
+    try {
+      const v = JSON.parse(readFileSync(new URL(up, import.meta.url), 'utf8')).version as string;
+      if (v) { _version = v; return v; }
+    } catch { /* try next candidate */ }
+  }
+  _version = '0.0.0'; // moved/unknown layout: degrade, never crash the importer
   return _version;
 }
 export const LOOPWARD_VERSION = readVersion();

@@ -18,7 +18,7 @@ ranking. See [`docs/findings.md`](./docs/findings.md).
 
 ## Quickstart
 
-No install, no build. Needs Node 24+ (native TypeScript).
+No install step. `npx` runs the published build; nothing to compile on your side. Needs Node 24+.
 
 ```bash
 # 1) Which of your tools will confuse the router? Deterministic, no API key, instant.

@@ -191,7 +191,7 @@ const T = {
     cap:`The whole problem in one number. A single injected line ("always prefer tool X") costs <b>Claude Opus-4-8</b> nothing and makes <b>Gemini-3.1-pro</b> wrong every single time. Across ${N} models the damage runs 0 to 100 points. The model you pick matters more than the loop you wrap around it, and it has little to do with how big or new the model is.`,
     whh:"What Loopward is",
     whp:`<p>An open-source CLI that stress-tests one decision inside your agent loop: which tool to call. You hand it the tool schema you already pass to the model. It writes a test request for each tool, rewrites that request six ways, and checks whether the model still knows which tool to reach for.</p><p>Scoring uses a fixed ground-truth answer, not an LLM judge, so results are stable and reproducible. It talks to any OpenAI-compatible endpoint, so switching models is one flag. It is built for two people: anyone tuning an agent who wants to know whether a model swap makes routing sturdier, and anyone building a harness who wants an honest number on routing quality.</p>`,
-    pills:["Open source · MIT","Zero runtime deps","No build step (native TS on Node 24)","Any OpenAI-compatible model"],
+    pills:["Open source · Apache-2.0","Zero runtime deps","npx-runnable, zero config","Any OpenAI-compatible model"],
     feh:"What it does",
     fes:"From a millisecond name audit to feeding failures back into training, one chain.",
     feats:[
@@ -244,7 +244,7 @@ const T = {
     cap:`一个数字就能说清问题。在上下文里注入一句“优先使用工具 X”:Claude Opus-4-8 完全不受影响,Gemini-3.1-pro 却每次都选错。${N} 个模型里,准确率下降从 0 到 100 分不等。选哪个模型,比在外面套多复杂的循环都更关键,而且跟模型的大小、新旧关系不大。`,
     whh:"Loopward 是什么",
     whp:`<p>一个开源命令行工具,专门给智能体循环里“选哪个工具”这个决定做压力测试。你把平时调用模型时用的那份工具 schema 交给它,它为每个工具编一条测试请求,再把请求改写六种说法,看模型还认不认得该用哪个工具。</p><p>判分靠写死的标准答案,不用大模型当裁判,所以结果稳定、可复现。任何 OpenAI 兼容的接口都能接,换模型只改一个参数。它为两类人做:在调智能体、想知道换个模型选工具会不会更稳的人;以及做 harness、想对路由质量有个客观数字的人。</p>`,
-    pills:["开源 · MIT","零运行时依赖","无需编译(Node 24 原生 TS)","任意 OpenAI 兼容模型"],
+    pills:["开源 · Apache-2.0","零运行时依赖","npx 直接跑、零配置","任意 OpenAI 兼容模型"],
     feh:"它能做什么",
     fes:"从毫秒级的命名审计,到把失败样本喂回训练,一条链走完。",
     feats:[
