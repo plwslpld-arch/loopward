@@ -1,5 +1,7 @@
 # Models and API keys
 
+English | [简体中文](./providers.zh-CN.md)
+
 Loopward routes through any OpenAI-compatible chat endpoint. You pick the model with `--model` and,
 if it is not one of the built-in presets, point `--base-url` at the gateway. Keys are read from
 environment variables only. Nothing secret is written to the repo, and there is no config file that

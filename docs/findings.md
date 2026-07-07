@@ -1,5 +1,7 @@
 # Findings
 
+English | [简体中文](./findings.zh-CN.md)
+
 > Reproducible results produced by Loopward. Each is regenerable from the exact command listed.
 > These are **pilot-grade** results (single model, single seed, one suite) — the shape is real; breadth
 > caveats are stated per finding. Do not overstate them.
