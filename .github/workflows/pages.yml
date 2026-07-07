@@ -34,18 +34,8 @@ jobs:
         run: |
           mkdir -p _site
           cp packages/dashboard/index.html _site/index.html
-      - name: robustness badge (grey 'not measured' unless LOOPWARD_MODEL_KEY is set — no auto API spend)
-        env:
-          LOOPWARD_MODEL_KEY: ${{ secrets.LOOPWARD_MODEL_KEY }}
-        run: |
-          if [ -z "$LOOPWARD_MODEL_KEY" ]; then
-            node packages/ci/src/render-pr.ts --unmeasured --badge _site/robustness.json
-          else
-            OPENAI_API_KEY="$LOOPWARD_MODEL_KEY" node packages/cli/src/cli.ts attack \
-              --tools datasets/tools/sample-tools.json --provider openai \
-              --model "${LOOPWARD_MODEL:-gpt-5.5}" --seed 42 --out runs/attack.json
-            node packages/ci/src/render-pr.ts runs/attack.json --badge _site/robustness.json
-          fi
+      - name: robustness badge (committed honest pilot badge — no auto API spend, links to dashboard)
+        run: cp robustness.json _site/robustness.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

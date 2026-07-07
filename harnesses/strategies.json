@@ -27,16 +27,16 @@
       "feedback_turns": 1,
       "reflects": true,
       "mechanism": "single route(), then one reflect node: the model is shown its own first pick and asked to double-check / switch to a better candidate before committing. One extra route() call, same oracle.",
-      "when_it_helps": "On some models the reflect node recovers robustness: GLM-5.1 gains +6.9pp attacked accuracy with a bootstrap CI that excludes 0 (F5).",
-      "when_it_hurts": "On other models the same reflect node second-guesses already-correct routes toward the confusing near-duplicate: deepseek-chat loses -11.9pp on confusion attacks and even -7.1pp on clean (F2). The sign is decided by the model, not the harness.",
+      "when_it_helps": "No measured model shows a clear win from the reflect node: on glm-5.2 it is a wash (+0.0pp vs single, identical, F5). Its only measured effects are neutral-to-negative.",
+      "when_it_hurts": "On other models the same reflect node second-guesses already-correct routes toward the confusing near-duplicate: deepseek-chat loses -11.9pp on confusion attacks and even -7.1pp on clean (F2). Whether it hurts or is merely inert is decided by the model, not the harness.",
       "evidence": [
         {
           "finding": "F5",
           "source": "docs/findings.md",
-          "model": "GLM-5.1",
+          "model": "glm-5.2",
           "seed": 42,
-          "direction": "helps",
-          "note": "matrix on datasets/routing/sample.json (n=12): self-check recovers +6.9pp attacked accuracy [+2.8, +11.1], CI excludes 0."
+          "direction": "neutral",
+          "note": "matrix on datasets/routing/sample.json (n=12): self-check = single (+0.0pp attacked accuracy). The reflect node is a wash on this model: re-examination buys no measurable robustness."
         },
         {
           "finding": "F2",
@@ -44,7 +44,7 @@
           "model": "deepseek-chat",
           "seed": 42,
           "direction": "hurts",
-          "note": "tools.json (n=42): self-check degrades routing on confusion attacks (boundary_blur -11.9pp, cross_skill_confusion -11.9pp) and lowers clean accuracy by -7.1pp. A plausible harness upgrade makes robustness worse. Paired with F5 this is NOT an endorsement: same node, opposite sign, model-dependent."
+          "note": "tools.json (n=42): self-check degrades routing on confusion attacks (boundary_blur -11.9pp, cross_skill_confusion -11.9pp) and lowers clean accuracy by -7.1pp. A plausible harness upgrade makes robustness worse. Paired with F5 (a wash on glm-5.2): the same node is harmful here and inert there — model-dependent, never a clear win."
         }
       ]
     },
@@ -55,12 +55,12 @@
       "reflects": false,
       "mechanism": "a think node (free-text generate() reasoning about which candidate fits) runs first, then route() is fed the intent plus that reasoning. Reasoning-before-routing; falls back to plain route() when the provider has no generate().",
       "when_it_helps": "Gives the router explicit reasoning context before it picks; a middle option between one-shot and re-examination that neither improves nor degrades on the measured model (a neutral, non-harmful loop upgrade).",
-      "when_it_hurts": "On GLM-5.1 the extra reasoning turn buys nothing: +0.0pp vs single (F5). Cost of an extra generate() call with no robustness payoff on this suite.",
+      "when_it_hurts": "On glm-5.2 the extra reasoning turn buys nothing: +0.0pp vs single (F5). Cost of an extra generate() call with no robustness payoff on this suite.",
       "evidence": [
         {
           "finding": "F5",
           "source": "docs/findings.md",
-          "model": "GLM-5.1",
+          "model": "glm-5.2",
           "seed": 42,
           "direction": "neutral",
           "note": "matrix on datasets/routing/sample.json (n=12): react = +0.0pp vs single. Reasoning-before-routing neither helped nor hurt this model on this suite."
@@ -73,7 +73,7 @@
       "feedback_turns": 2,
       "reflects": false,
       "mechanism": "route() once, then up to 2 observe feedback turns: each turn shows the model its current pick and a stub observation ('it returned: ok') and lets it keep or switch the tool; stops early once the pick stabilizes. The routing analogue of the multi-step observation loop.",
-      "when_it_helps": "Feeding an observation back is the single most impactful harness change measured: in the multi-step loop, adding a one-line stub observation after each call lifted task success 10% -> 60% and cut over-run 80% -> 20%, same model and tasks (F4). On GLM-5.1 the routing observe variant recovers +6.9pp attacked accuracy (F5).",
+      "when_it_helps": "Feeding an observation back is the single most impactful harness change measured: in the multi-step loop, adding a one-line stub observation after each call lifted task success 10% -> 60% and cut over-run 80% -> 20%, same model and tasks (F4). On glm-5.2 the routing observe variant nudges +1.4pp but the CI includes 0, so no significant gain (F5).",
       "when_it_hurts": "The observation is a stub ('returned ok'), not a real tool result, so it cannot correct a route that was already committed to the wrong tool; on models where re-feeding a prior pick induces second-guessing it can drift the same way self-check does. Levels are not fully independent from self-check (both re-feed a prior pick).",
       "evidence": [
         {
@@ -87,10 +87,10 @@
         {
           "finding": "F5",
           "source": "docs/findings.md",
-          "model": "GLM-5.1",
+          "model": "glm-5.2",
           "seed": 42,
-          "direction": "helps",
-          "note": "matrix on datasets/routing/sample.json (n=12): observe recovers +6.9pp attacked accuracy [+2.8, +11.1], tying self-check on this model/suite."
+          "direction": "neutral",
+          "note": "matrix on datasets/routing/sample.json (n=12): observe +1.4pp vs single [-2.8, +5.6], CI includes 0 — not a significant gain; ties single/self-check within noise."
         }
       ]
     }

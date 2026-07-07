@@ -55,15 +55,15 @@ re-examination and no feedback.
 **Mechanism.** After the first `route()`, a `reflect` node shows the model its own pick and asks it to
 double-check / switch to a better candidate before committing (one extra `route()` call, same oracle).
 
-- **Helps —** `GLM-5.1`, seed 42 (**F5**, `sample.json` n=12): the reflect node **recovers** +6.9pp
-  attacked accuracy, CI [+2.8, +11.1] excludes 0.
+- **No win —** `glm-5.2`, seed 42 (**F5**, `sample.json` n=12): the reflect node is a **wash** — **+0.0pp**
+  vs `single` (identical): re-examination buys no measurable robustness on this model.
 - **Hurts —** `deepseek-chat`, seed 42 (**F2**, `tools.json` n=42): the same reflect node second-guesses
   already-correct routes toward the confusing near-duplicate — **−11.9pp** on `boundary_blur` and
   `cross_skill_confusion`, and even **−7.1pp** on clean.
 
-> Read F5 and F2 **together**: identical node, opposite sign, decided by the model. `self-check` is not an
-> endorsed upgrade — it is the clearest demonstration that whether a harness change helps is a property of
-> the *model-and-harness pair*, which is exactly why you `matrix` it instead of assuming it.
+> Read F5 and F2 **together**: identical node, harmful on one model and inert on another, decided by the model.
+> `self-check` is not an endorsed upgrade — it is the clearest demonstration that whether a harness change helps
+> is a property of the *model-and-harness pair*, which is exactly why you `matrix` it instead of assuming it.
 
 ---
 
@@ -76,9 +76,9 @@ double-check / switch to a better candidate before committing (one extra `route(
 then `route()` is fed the intent plus that reasoning. Falls back to a plain `route()` when the provider has
 no `generate()`.
 
-- **Helps —** `GLM-5.1`, seed 42 (**F5**): a neutral, non-harmful loop option sitting between one-shot and
+- **Helps —** `glm-5.2`, seed 42 (**F5**): a neutral, non-harmful loop option sitting between one-shot and
   re-examination; gives the router explicit reasoning context before it picks.
-- **Hurts —** `GLM-5.1`, seed 42 (**F5**, `sample.json` n=12): the extra reasoning turn buys nothing —
+- **Hurts —** `glm-5.2`, seed 42 (**F5**, `sample.json` n=12): the extra reasoning turn buys nothing —
   **+0.0pp** vs `single` — so on this model/suite it is the cost of an extra `generate()` call with no
   robustness payoff.
 
@@ -95,9 +95,9 @@ once the pick stabilizes. The routing analogue of the multi-step observation loo
 
 - **Helps —** `deepseek-chat`, seed 42 (**F4**, `tasks.json` n=10): feeding an observation back is the
   single most impactful harness change measured — adding a one-line stub observation after each call lifted
-  multi-step task success **10% → 60%** and cut over-run **80% → 20%**, same model and tasks. On `GLM-5.1`
-  the routing `observe` variant also recovers **+6.9pp** attacked accuracy (**F5**).
-- **Hurts —** `GLM-5.1` / `deepseek-chat`, seed 42 (**F5**, **F2**): the observation is a stub, not a real
+  multi-step task success **10% → 60%** and cut over-run **80% → 20%**, same model and tasks. On `glm-5.2`
+  the routing `observe` variant nudges **+1.4pp** but its CI includes 0, so no significant gain (**F5**).
+- **Hurts —** `glm-5.2` / `deepseek-chat`, seed 42 (**F5**, **F2**): the observation is a stub, not a real
   tool result, so it cannot fix a route already committed to the wrong tool; on models where re-feeding a
   prior pick induces second-guessing it can drift the same way `self-check` does (levels are not fully
   independent — both re-feed a prior pick).

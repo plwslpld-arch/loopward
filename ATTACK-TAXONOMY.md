@@ -11,7 +11,7 @@ Six perturbation classes applied to the **intent** that the loop's routing/stop 
 |---|---|---|---|
 | `boundary_blur` | Blur the boundary between similarly-named/scoped tools | Misfire on token similarity (`get_status` vs `fetch_status`) | MCP tool-overload write-ups; MetaTool similar-tool cases |
 | `semantic_injection` | Inject misleading instruction/semantics into the observed context | Route hijack via injected content | OWASP LLM01 (prompt injection) |
-| `negation_trap` | Phrase intent with negation ("do NOT use X, use the other") | Routing flips on negation handling | Adversarial NLP negation literature |
+| `negation_trap` | Phrase intent with negation ("do NOT use X") | Routing flips on negation handling | Adversarial NLP negation literature |
 | `multi_intent` | Pack two+ intents into one request | Wrong single-tool commit / dropped intent | Public multi-intent parsing / tool-use studies |
 | `minimal_context` | Strip the intent to underspecified minimum | Over-confident wrong route / fails to ask/stop | Under-specification robustness literature |
 | `cross_skill_confusion` | Present overlapping-capability skills at dispatch | Dispatch to wrong skill/sub-agent | MetaTool / CATS candidate-pool confusion |
@@ -25,8 +25,9 @@ Six perturbation classes applied to the **intent** that the loop's routing/stop 
 
 ## Scoring
 
-Deterministic ground-truth only for routing (no LLM-judge). Each case carries: `intent`, `candidate skills/tools`,
-`ground_truth_route`, `expected_stop`. Open-ended multistep success may use a judge only as a last resort, and must
-report judge-agreement.
+Deterministic ground-truth for everything scored — routing AND multistep. No LLM-judge, ever. Each case carries:
+`intent`, `candidate skills/tools`, `ground_truth_route`, `expected_stop`. Multistep success is scored deterministically
+as a required-tool-set match (did the run call the required tools and stop?), never by a judge.
 
-[TODO: per-class, add the exact public source URL in the code file header as `// derived from public source: <url>`.]
+Each class's public lineage is the rightmost column above; `packages/redteam/src/attacks.ts` carries the same source
+on every attack it emits.

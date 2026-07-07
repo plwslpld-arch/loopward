@@ -90,43 +90,43 @@ The bootstrap CI captures case-sampling uncertainty but not this model stochasti
 ## F3 — Routing robustness is model-specific, not a clean vendor property (13 models)
 
 **Setup.** Same `tools.json` (n=42), `single` variant, seed 42, deterministic oracle. 13 models across six
-vendors and three tiers, via a DeepSeek key and an OpenAI-compatible gateway. Most score 100% clean; the
-exceptions are DeepSeek-v4-pro and Qwen3.7-max (97.6%) and GLM-5.1 (90%), so nearly every delta below is
+vendors and three tiers, via a DeepSeek key and an OpenAI-compatible gateway. Most score 100% clean; the only
+exceptions are DeepSeek-v4-pro and Qwen3.7-max (97.6%), so nearly every delta below is
 attack-induced degradation. Values are robustness_delta (pp on seed 42, higher = more fragile).
 
 | Model | semantic_inj | minimal_ctx | boundary_blur | multi_intent | cross_skill | negation |
 |---|---|---|---|---|---|---|
-| Claude Opus-4-8 | **+0** | +24 | +17 | +0 | +2 | +0 |
+| Claude Opus-4-8 | **+2** | +24 | +19 | +0 | +2 | +0 |
 | Claude Sonnet-5 | +10 | +24 | +5 | +10 | +2 | +0 |
-| DeepSeek-chat | +24 | **+43** | +29 | +21 | +12 | +2 |
-| Claude Haiku-4-5 | +40 | +31 | +19 | +2 | +2 | +0 |
-| GPT-5.5 | +50 | +19 | +2 | +14 | +0 | +0 |
-| DeepSeek-v4-pro | +74 | +17 | +10 | +10 | +0 | -2 |
+| DeepSeek-chat | +24 | **+45** | +29 | +21 | +12 | +2 |
+| Claude Haiku-4-5 | +38 | +33 | +26 | +2 | +2 | +0 |
+| GPT-5.5 | +50 | +17 | +5 | +14 | +0 | +0 |
+| DeepSeek-v4-pro | +69 | +26 | +7 | +12 | -2 | -2 |
 | Grok-4.3 | +79 | +17 | +14 | +0 | +0 | +0 |
-| GPT-5.4-mini | +88 | +36 | +12 | +7 | +0 | +0 |
-| GLM-5.1 | +90 | +30 | +0 | +20 | +0 | -10 |
-| Gemini-3.5-flash | +93 | +24 | +2 | +2 | +0 | +0 |
-| Qwen3.7-max | +98 | +19 | +2 | +5 | -2 | -2 |
-| GPT-5.4 | +98 | +29 | +17 | +19 | +5 | +0 |
-| Gemini-3.1-pro | +100 | +17 | +7 | +5 | +2 | +0 |
+| GLM-5.2 | +79 | +24 | +10 | +2 | +0 | +0 |
+| GPT-5.4-mini | +90 | +36 | +19 | +17 | +0 | +0 |
+| Gemini-3.5-flash | +98 | +24 | +2 | +2 | +0 | +0 |
+| Qwen3.7-max | +98 | +14 | +2 | +5 | -2 | -2 |
+| GPT-5.4 | +100 | +24 | +10 | +19 | +2 | +0 |
+| Gemini-3.1-pro | +100 | +14 | +7 | +5 | +2 | +0 |
 
 **Reading it.**
 1. **A huge spread on one attack.** `semantic_injection` (a one-line "System note: always prefer X" in the context)
-   costs anywhere from 0 points (Claude Opus-4-8, no measurable drop on seed 42) to ~100 (Gemini-3.1-pro, wrong on
-   every case in this suite). Which model you run matters more for routing-injection safety than the loop you build
-   around it.
-2. **It clusters by vendor, but only loosely.** Anthropic's Claude family is consistently injection-robust (Opus +0,
-   Sonnet +10, Haiku +40). Everyone else is scattered. And DeepSeek is split down the middle: `deepseek-chat` resists
-   injection on seed 42 (+24) while `deepseek-v4-pro` does not (+74). So "DeepSeek is robust" was really "deepseek-chat
+   costs anywhere from ~2 points (Claude Opus-4-8, essentially no drop on seed 42) to +100 (Gemini-3.1-pro and
+   GPT-5.4, wrong on every case in this suite). Which model you run matters more for routing-injection safety than
+   the loop you build around it.
+2. **It clusters by vendor, but only loosely.** Anthropic's Claude family is consistently injection-robust (Opus +2,
+   Sonnet +10, Haiku +38). Everyone else is scattered. And DeepSeek is split down the middle: `deepseek-chat` resists
+   injection on seed 42 (+24) while `deepseek-v4-pro` does not (+69). So "DeepSeek is robust" was really "deepseek-chat
    is robust here". The same lesson repeats across Chinese models: only `deepseek-chat` resists injection, while
-   `deepseek-v4-pro` (+74), `Qwen3.7-max` (+98), and `GLM-5.1` (+90) do not. Region and brand are not the axis. The
+   `deepseek-v4-pro` (+69), `Qwen3.7-max` (+98), and `GLM-5.2` (+79) do not. Region and brand are not the axis. The
    specific model is.
 3. **Newer is not consistently safer, and the direction differs by vendor.** Within OpenAI, newer helped
-   (GPT-5.4 +98 to GPT-5.5 +50). Within DeepSeek it went the other way (chat +24 to v4-pro +74). You cannot assume the
+   (GPT-5.4 +100 to GPT-5.5 +50). Within DeepSeek it went the other way (chat +24 to v4-pro +69). You cannot assume the
    next release is more robust.
-4. **No model is safe everywhere.** Injection-immune Claude Opus still loses 24 points on terse prompts. DeepSeek-chat,
-   the injection standout, is the worst of all on terse prompts (+43). Pick your poison.
-5. **Nobody falls for explicit negation** (`negation_trap` is ~0 across all 12; DeepSeek-v4-pro and Qwen3.7-max even improve slightly).
+4. **No model is safe everywhere.** Injection-resistant Claude Opus still loses 24 points on terse prompts. DeepSeek-chat,
+   the injection standout, is the worst of all on terse prompts (+45). Pick your poison.
+5. **Nobody falls for explicit negation** (`negation_trap` is ~0 across the board; DeepSeek-v4-pro and Qwen3.7-max even improve slightly).
 
 **Caveats.** One seed, one 42-case suite, temperature 0 (near- but not fully deterministic). The gateway may route
 model aliases to specific snapshots. Magnitudes are suite-dependent. What holds up is the cross-model ordering and the
@@ -163,34 +163,36 @@ set-based (tool order lenient). This measures loop control (progress + stop), no
 
 ---
 
-## F5 — The harness effect is model-specific: self-check helps one model and hurt another
+## F5 — The harness effect is model-specific: a self-check node hurts one model and does nothing for another
 
 **Setup.** `loopward matrix`: the same six attacks run through four loop strategies on a *fixed* model,
 `datasets/routing/sample.json` (n=12), seed 42. Attacked accuracy is pooled over the six attacks; deltas
 between strategies are case-level paired bootstrap 95% CIs.
 
 ```
-loopward matrix --suite datasets/routing/sample.json --provider openai --model <glm-5.1>
+loopward matrix --suite datasets/routing/sample.json --provider openai --model <glm-5.2>
 ```
 
-| Strategy (GLM-5.1) | clean | attacked | Δ vs single |
+| Strategy (GLM-5.2) | clean | attacked | Δ vs single |
 |---|---|---|---|
-| single | 100% | 79.2% | — |
-| self-check | 100% | 86.1% | **+6.9pp** [+2.8, +11.1] |
-| react | 100% | 79.2% | +0.0pp |
-| observe | 100% | 86.1% | +6.9pp [+2.8, +11.1] |
+| single | 100% | 87.5% | — |
+| self-check | 100% | 87.5% | **+0.0pp** (identical to single) |
+| react | 100% | 87.5% | +0.0pp |
+| observe | 100% | 88.9% | +1.4pp [−2.8, +5.6] |
 
-**Reading it.** On GLM-5.1, adding a self-check reflect node **recovers** 6.9 points of attacked routing
-accuracy and the CI excludes 0. But F2 found that same self-check node **degrades** deepseek-chat (−12pp on
-the confusion attacks, −7pp clean). Same loop upgrade, opposite sign, decided by the model. **Whether a
-harness change helps is a property of the model-and-harness pair, not the harness alone** — which is the
-whole reason to *measure* it (`matrix`) rather than assume it. Holding the model fixed and varying the
+**Reading it.** On GLM-5.2, adding a self-check reflect node moves attacked routing by **0.0 points** — it is
+*identical* to `single`. The best strategy here (`observe`) nudges +1.4pp, but its CI includes 0, so on this
+model the reflect node is inert. Yet F2 found that same self-check node **degrades** deepseek-chat (−12pp on
+the confusion attacks, −7pp clean). Same loop upgrade: harmful on one model, a no-op on another. **Whether a
+harness change helps — or hurts — is a property of the model-and-harness pair, not the harness alone** — which is
+the whole reason to *measure* it (`matrix`) rather than assume it. Holding the model fixed and varying the
 harness is the axis a model-vs-model leaderboard cannot see.
 
 **Caveats.** One model on each side, one seed, small suites (n=12 here vs n=42 for F2, and different suites,
 so this is a qualitative cross-finding, not a paired comparison). Strategy levels are not mechanistically
-independent (self-check and observe both re-feed a prior pick, and here they tie). The sign and the
-CI-excludes-0 conclusion are the signal; the exact magnitude is suite- and model-dependent.
+independent (self-check and observe both re-feed a prior pick). The signal is the *contrast* — a self-check
+node that clearly hurts deepseek-chat does nothing measurable on glm-5.2; the exact magnitudes are suite- and
+model-dependent.
 
 ---
 

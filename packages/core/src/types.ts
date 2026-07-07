@@ -12,6 +12,8 @@ export interface RoutingCase {
 export interface RouteResult {
   tool: string;
   raw?: string;              // provider's raw response, for the trajectory trace
+  matched?: boolean;         // true when raw snapped to a real candidate; false when no unambiguous
+                             // candidate was found (tool then = raw, which scores incorrect).
 }
 
 export interface Provider {

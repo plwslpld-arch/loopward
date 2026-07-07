@@ -11,11 +11,15 @@ import type { Provider, RoutingCase } from '../../../core/src/types.ts';
 import type { Variant } from '../../../core/src/loop.ts';
 import { runAttacks } from '../../../redteam/src/attack-run.ts';
 import { bootstrapDeltaCI, mean, type DeltaCI } from '../../../redteam/src/metrics.ts';
+import { holm, permutationPValue } from '../stats/multiseed.ts';
 
 export const DEFAULT_STRATEGIES: Variant[] = ['single', 'self-check', 'react', 'observe'];
 
 export interface StrategyRow { strategy: Variant; clean: number; attacked: number }
-export interface StrategyDelta { a: Variant; b: Variant; delta: DeltaCI }
+// `best` is the data-selected argmax, so the direction of each best-vs-other contrast is NOT
+// pre-registered: p is a two-sided paired permutation p, and p_holm is Holm-corrected across the
+// simultaneous best-vs-others comparisons (NOT selection-corrected — see `note`).
+export interface StrategyDelta { a: Variant; b: Variant; delta: DeltaCI; p: number; p_holm: number }
 export interface HarnessMatrixReport {
   provider: string;
   seed: number;
@@ -52,13 +56,22 @@ export async function harnessMatrix(
   const best = ranked[0].strategy;
   const worst = ranked[ranked.length - 1].strategy;
   const bestVec = vecByStrategy.get(best)!;
-  const deltas: StrategyDelta[] = per_strategy
+  // best-vs-others: paired bootstrap CI + a two-sided paired permutation p per comparison. The direction
+  // is NOT pre-registered (best is the empirical argmax), so we test two-sided. Holm then corrects the
+  // family of simultaneous best-vs-others comparisons — the same FWER control every other multi-comparison
+  // site in the suite (correctAttacks / correctStopAxis / gate) applies.
+  const raw = per_strategy
     .filter((r) => r.strategy !== best)
-    .map((r) => ({ a: best, b: r.strategy, delta: bootstrapDeltaCI(bestVec, vecByStrategy.get(r.strategy)!, seed) }));
+    .map((r) => {
+      const otherVec = vecByStrategy.get(r.strategy)!;
+      return { a: best, b: r.strategy, delta: bootstrapDeltaCI(bestVec, otherVec, seed), p: permutationPValue(bestVec, otherVec, seed, 2000, 'two-sided') };
+    });
+  const pHolm = holm(raw.map((r) => r.p));
+  const deltas: StrategyDelta[] = raw.map((r, i) => ({ ...r, p_holm: pHolm[i] }));
 
   return {
     provider: provider.name, seed, strategies, attacks: attackNames, n_cases: cases.length,
     per_strategy, best, worst, deltas,
-    note: `attacked accuracy is pooled over ${attackNames.length} attacks; deltas are case-level paired bootstrap, conditional on model "${provider.name}" and this suite. strategy levels are not fully independent (self-check/observe both re-feed a prior pick), and a different model can reorder them.`,
+    note: `attacked accuracy is pooled over ${attackNames.length} attacks; deltas are case-level paired bootstrap, conditional on model "${provider.name}" and this suite. \`best\` is the DATA-SELECTED empirical argmax of attacked accuracy, so the reported best-vs-others deltas carry winner's-curse (selection) bias: their two-sided paired permutation p-values are Holm-corrected across the ${deltas.length} simultaneous comparisons but NOT selection-corrected, and the CIs are not shrunk for having picked the max. strategy levels are not fully independent (self-check/observe both re-feed a prior pick), and a different model or suite can reorder the strategies — read "most robust harness" as descriptive of THIS run, not proof that \`best\` dominates.`,
   };
 }

@@ -9,12 +9,12 @@
 <circle cx="33" cy="104" r="5" fill="#d97757"/>
 <text x="48" y="101" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">claude-opus-4-8</text>
 <text x="48" y="116" font-family="sans-serif" font-size="11" fill="#616b7a">Anthropic</text>
-<rect x="235" y="83" width="86" height="42" rx="4" fill="#218c4e"/>
-<text x="278" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
+<rect x="235" y="83" width="86" height="42" rx="4" fill="#218c48"/>
+<text x="278" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
 <rect x="323" y="83" width="86" height="42" rx="4" fill="#399d25"/>
 <text x="366" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+23.8</text>
-<rect x="411" y="83" width="86" height="42" rx="4" fill="#249926"/>
-<text x="454" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
+<rect x="411" y="83" width="86" height="42" rx="4" fill="#2a9924"/>
+<text x="454" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
 <rect x="499" y="83" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="542" y="104" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <rect x="587" y="83" width="86" height="42" rx="4" fill="#218c48"/>
@@ -41,8 +41,8 @@
 <text x="48" y="204" font-family="sans-serif" font-size="11" fill="#616b7a">DeepSeek</text>
 <rect x="235" y="171" width="86" height="42" rx="4" fill="#399d25"/>
 <text x="278" y="192" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+23.8</text>
-<rect x="323" y="171" width="86" height="42" rx="4" fill="#75a527"/>
-<text x="366" y="192" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+42.9</text>
+<rect x="323" y="171" width="86" height="42" rx="4" fill="#7da527"/>
+<text x="366" y="192" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+45.2</text>
 <rect x="411" y="171" width="86" height="42" rx="4" fill="#47a126"/>
 <text x="454" y="192" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+28.6</text>
 <rect x="499" y="171" width="86" height="42" rx="4" fill="#319d25"/>
@@ -54,12 +54,12 @@
 <circle cx="33" cy="236" r="5" fill="#d97757"/>
 <text x="48" y="233" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">claude-haiku-4-5</text>
 <text x="48" y="248" font-family="sans-serif" font-size="11" fill="#616b7a">Anthropic</text>
-<rect x="235" y="215" width="86" height="42" rx="4" fill="#6ea527"/>
-<text x="278" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+40.5</text>
-<rect x="323" y="215" width="86" height="42" rx="4" fill="#4fa126"/>
-<text x="366" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+31</text>
-<rect x="411" y="215" width="86" height="42" rx="4" fill="#2a9924"/>
-<text x="454" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
+<rect x="235" y="215" width="86" height="42" rx="4" fill="#66a527"/>
+<text x="278" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+38.1</text>
+<rect x="323" y="215" width="86" height="42" rx="4" fill="#55a126"/>
+<text x="366" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+33.3</text>
+<rect x="411" y="215" width="86" height="42" rx="4" fill="#3f9d25"/>
+<text x="454" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+26.2</text>
 <rect x="499" y="215" width="86" height="42" rx="4" fill="#218c48"/>
 <text x="542" y="236" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
 <rect x="587" y="215" width="86" height="42" rx="4" fill="#218c48"/>
@@ -71,10 +71,10 @@
 <text x="48" y="292" font-family="sans-serif" font-size="11" fill="#616b7a">OpenAI</text>
 <rect x="235" y="259" width="86" height="42" rx="4" fill="#8aa527"/>
 <text x="278" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+50</text>
-<rect x="323" y="259" width="86" height="42" rx="4" fill="#2a9924"/>
-<text x="366" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
-<rect x="411" y="259" width="86" height="42" rx="4" fill="#218c48"/>
-<text x="454" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
+<rect x="323" y="259" width="86" height="42" rx="4" fill="#249926"/>
+<text x="366" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
+<rect x="411" y="259" width="86" height="42" rx="4" fill="#229143"/>
+<text x="454" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+4.8</text>
 <rect x="499" y="259" width="86" height="42" rx="4" fill="#24992c"/>
 <text x="542" y="280" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+14.3</text>
 <rect x="587" y="259" width="86" height="42" rx="4" fill="#218c4e"/>
@@ -84,16 +84,16 @@
 <circle cx="33" cy="324" r="5" fill="#4d6bfe"/>
 <text x="48" y="321" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">deepseek-v4-pro</text>
 <text x="48" y="336" font-family="sans-serif" font-size="11" fill="#616b7a">DeepSeek</text>
-<rect x="235" y="303" width="86" height="42" rx="4" fill="#9d7125"/>
-<text x="278" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+73.8</text>
-<rect x="323" y="303" width="86" height="42" rx="4" fill="#249926"/>
-<text x="366" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
-<rect x="411" y="303" width="86" height="42" rx="4" fill="#239538"/>
-<text x="454" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+9.5</text>
-<rect x="499" y="303" width="86" height="42" rx="4" fill="#239538"/>
-<text x="542" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+9.5</text>
+<rect x="235" y="303" width="86" height="42" rx="4" fill="#a18226"/>
+<text x="278" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+69</text>
+<rect x="323" y="303" width="86" height="42" rx="4" fill="#3f9d25"/>
+<text x="366" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+26.2</text>
+<rect x="411" y="303" width="86" height="42" rx="4" fill="#22913e"/>
+<text x="454" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+7.1</text>
+<rect x="499" y="303" width="86" height="42" rx="4" fill="#239532"/>
+<text x="542" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+11.9</text>
 <rect x="587" y="303" width="86" height="42" rx="4" fill="#218c4e"/>
-<text x="630" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
+<text x="630" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">-2.4</text>
 <rect x="675" y="303" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="718" y="324" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">-2.4</text>
 <circle cx="33" cy="368" r="5" fill="#8b5cf6"/>
@@ -114,14 +114,14 @@
 <circle cx="33" cy="412" r="5" fill="#10a37f"/>
 <text x="48" y="409" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">gpt-5.4-mini</text>
 <text x="48" y="424" font-family="sans-serif" font-size="11" fill="#616b7a">OpenAI</text>
-<rect x="235" y="391" width="86" height="42" rx="4" fill="#954323"/>
-<text x="278" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+88.1</text>
+<rect x="235" y="391" width="86" height="42" rx="4" fill="#953d23"/>
+<text x="278" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+90.5</text>
 <rect x="323" y="391" width="86" height="42" rx="4" fill="#5da126"/>
 <text x="366" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+35.7</text>
-<rect x="411" y="391" width="86" height="42" rx="4" fill="#239532"/>
-<text x="454" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+11.9</text>
-<rect x="499" y="391" width="86" height="42" rx="4" fill="#22913e"/>
-<text x="542" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+7.1</text>
+<rect x="411" y="391" width="86" height="42" rx="4" fill="#2a9924"/>
+<text x="454" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
+<rect x="499" y="391" width="86" height="42" rx="4" fill="#249926"/>
+<text x="542" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
 <rect x="587" y="391" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="630" y="412" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <rect x="675" y="391" width="86" height="42" rx="4" fill="#218c4e"/>
@@ -129,8 +129,8 @@
 <circle cx="33" cy="456" r="5" fill="#4285f4"/>
 <text x="48" y="453" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">gemini-3.5-flash</text>
 <text x="48" y="468" font-family="sans-serif" font-size="11" fill="#616b7a">Google</text>
-<rect x="235" y="435" width="86" height="42" rx="4" fill="#913422"/>
-<text x="278" y="456" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+92.9</text>
+<rect x="235" y="435" width="86" height="42" rx="4" fill="#8c2621"/>
+<text x="278" y="456" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+97.6</text>
 <rect x="323" y="435" width="86" height="42" rx="4" fill="#399d25"/>
 <text x="366" y="456" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+23.8</text>
 <rect x="411" y="435" width="86" height="42" rx="4" fill="#218c48"/>
@@ -144,16 +144,16 @@
 <circle cx="33" cy="500" r="5" fill="#10a37f"/>
 <text x="48" y="497" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">gpt-5.4</text>
 <text x="48" y="512" font-family="sans-serif" font-size="11" fill="#616b7a">OpenAI</text>
-<rect x="235" y="479" width="86" height="42" rx="4" fill="#8c2621"/>
-<text x="278" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+97.6</text>
-<rect x="323" y="479" width="86" height="42" rx="4" fill="#47a126"/>
-<text x="366" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+28.6</text>
-<rect x="411" y="479" width="86" height="42" rx="4" fill="#249926"/>
-<text x="454" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
+<rect x="235" y="479" width="86" height="42" rx="4" fill="#8c2121"/>
+<text x="278" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+100</text>
+<rect x="323" y="479" width="86" height="42" rx="4" fill="#399d25"/>
+<text x="366" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+23.8</text>
+<rect x="411" y="479" width="86" height="42" rx="4" fill="#239538"/>
+<text x="454" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+9.5</text>
 <rect x="499" y="479" width="86" height="42" rx="4" fill="#2a9924"/>
 <text x="542" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
-<rect x="587" y="479" width="86" height="42" rx="4" fill="#229143"/>
-<text x="630" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+4.8</text>
+<rect x="587" y="479" width="86" height="42" rx="4" fill="#218c48"/>
+<text x="630" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
 <rect x="675" y="479" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="718" y="500" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <circle cx="33" cy="544" r="5" fill="#ff6a00"/>
@@ -161,8 +161,8 @@
 <text x="48" y="556" font-family="sans-serif" font-size="11" fill="#616b7a">Alibaba</text>
 <rect x="235" y="523" width="86" height="42" rx="4" fill="#8c2621"/>
 <text x="278" y="544" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+97.6</text>
-<rect x="323" y="523" width="86" height="42" rx="4" fill="#2a9924"/>
-<text x="366" y="544" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+19</text>
+<rect x="323" y="523" width="86" height="42" rx="4" fill="#24992c"/>
+<text x="366" y="544" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+14.3</text>
 <rect x="411" y="523" width="86" height="42" rx="4" fill="#218c48"/>
 <text x="454" y="544" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
 <rect x="499" y="523" width="86" height="42" rx="4" fill="#229143"/>
@@ -176,8 +176,8 @@
 <text x="48" y="600" font-family="sans-serif" font-size="11" fill="#616b7a">Google</text>
 <rect x="235" y="567" width="86" height="42" rx="4" fill="#8c2121"/>
 <text x="278" y="588" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+100</text>
-<rect x="323" y="567" width="86" height="42" rx="4" fill="#249926"/>
-<text x="366" y="588" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+16.7</text>
+<rect x="323" y="567" width="86" height="42" rx="4" fill="#24992c"/>
+<text x="366" y="588" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+14.3</text>
 <rect x="411" y="567" width="86" height="42" rx="4" fill="#22913e"/>
 <text x="454" y="588" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+7.1</text>
 <rect x="499" y="567" width="86" height="42" rx="4" fill="#229143"/>
@@ -187,20 +187,20 @@
 <rect x="675" y="567" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="718" y="588" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <circle cx="33" cy="632" r="5" fill="#3859ff"/>
-<text x="48" y="629" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">glm-5.1</text>
+<text x="48" y="629" font-family="sans-serif" font-size="13" font-weight="600" fill="#171b22">glm-5.2</text>
 <text x="48" y="644" font-family="sans-serif" font-size="11" fill="#616b7a">Zhipu</text>
-<rect x="235" y="611" width="86" height="42" rx="4" fill="#953f23"/>
-<text x="278" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+90</text>
-<rect x="323" y="611" width="86" height="42" rx="4" fill="#4ba126"/>
-<text x="366" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+30</text>
-<rect x="411" y="611" width="86" height="42" rx="4" fill="#218c4e"/>
-<text x="454" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
-<rect x="499" y="611" width="86" height="42" rx="4" fill="#2d9d25"/>
-<text x="542" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+20</text>
+<rect x="235" y="611" width="86" height="42" rx="4" fill="#9d6325"/>
+<text x="278" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#ffffff">+78.6</text>
+<rect x="323" y="611" width="86" height="42" rx="4" fill="#399d25"/>
+<text x="366" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+23.8</text>
+<rect x="411" y="611" width="86" height="42" rx="4" fill="#239538"/>
+<text x="454" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+9.5</text>
+<rect x="499" y="611" width="86" height="42" rx="4" fill="#218c48"/>
+<text x="542" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">+2.4</text>
 <rect x="587" y="611" width="86" height="42" rx="4" fill="#218c4e"/>
 <text x="630" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <rect x="675" y="611" width="86" height="42" rx="4" fill="#218c4e"/>
-<text x="718" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">-10</text>
+<text x="718" y="632" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="13" fill="#111111">0</text>
 <rect x="234" y="688" width="48" height="16" fill="#218c4e"/>
 <rect x="282" y="688" width="48" height="16" fill="#2d9d25"/>
 <rect x="330" y="688" width="48" height="16" fill="#6ca527"/>

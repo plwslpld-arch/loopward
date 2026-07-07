@@ -19,7 +19,9 @@ export interface MultistepResult {
   premature_stop: boolean;  // stopped with required tools still uncalled
   over_run: boolean;        // never stopped, or called extra/duplicate tools
   missing: string[];
-  extra: string[];
+  extra: string[];          // called tools that are not in the required set (non-required extras)
+  extra_count: number;      // redundancy by MULTIPLICITY: called.length − #distinct required tools
+                            //   actually called, so a duplicate call to a REQUIRED tool counts too
   steps: number;
   trajectory: { step: number; action: string }[];
 }
@@ -56,11 +58,15 @@ export async function runMultistep(task: MultistepTask, provider: Provider, seed
   const calledSet = new Set(called.map(lc));
   const missing = task.required.filter((r) => !calledSet.has(lc(r)));
   const extra = called.filter((c) => !requiredSet.has(lc(c)));
-  const success = stopped && missing.length === 0 && extra.length === 0 && called.length === task.required.length;
+  // Redundancy by multiplicity: every call beyond the distinct required tools actually hit is waste —
+  // whether it's a non-required tool OR a second call to a required one (which `extra` cannot see).
+  const distinctRequiredCalled = new Set(called.map(lc).filter((c) => requiredSet.has(c))).size;
+  const extra_count = called.length - distinctRequiredCalled;
+  const success = stopped && missing.length === 0 && extra_count === 0 && called.length === task.required.length;
   const premature_stop = stopped && missing.length > 0;
-  const over_run = !stopped || extra.length > 0 || called.length > task.required.length;
+  const over_run = !stopped || extra_count > 0;
 
-  return { taskId: task.id, called, stopped, success, premature_stop, over_run, missing, extra, steps: called.length, trajectory };
+  return { taskId: task.id, called, stopped, success, premature_stop, over_run, missing, extra, extra_count, steps: called.length, trajectory };
 }
 
 export interface MultistepSummary {
@@ -86,7 +92,7 @@ export async function runMultistepSuite(tasks: MultistepTask[], provider: Provid
     success_rate: rate((r) => r.success),
     premature_stop_rate: rate((r) => r.premature_stop),
     over_run_rate: rate((r) => r.over_run),
-    avg_extra_calls: avg((r) => r.extra.length),
+    avg_extra_calls: avg((r) => r.extra_count),
     results,
   };
 }

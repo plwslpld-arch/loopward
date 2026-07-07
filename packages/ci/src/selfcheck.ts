@@ -58,6 +58,16 @@ async function main(): Promise<void> {
   assert.strictEqual(badgeColor(0.49), 'red');
   assert.strictEqual(unmeasuredBadge().color, 'lightgrey');
 
+  // Committed pilot badge (repo-root robustness.json) is the Pages default now — it must be a valid
+  // shields endpoint object AND must NOT be the grey 'not measured' sentinel (that was a false claim
+  // masquerading as no-data; 13 models WERE measured). Fails if the honest badge is reverted/deleted.
+  const committed = JSON.parse(readFileSync('robustness.json', 'utf8')) as Record<string, unknown>;
+  assert.strictEqual(committed.schemaVersion, 1, 'committed robustness.json schemaVersion must be 1');
+  assert.ok(typeof committed.label === 'string' && committed.label.length > 0, 'committed robustness.json needs a non-empty label');
+  assert.ok(typeof committed.message === 'string' && committed.message.length > 0, 'committed robustness.json needs a non-empty message');
+  assert.ok(typeof committed.color === 'string' && committed.color.length > 0, 'committed robustness.json needs a non-empty color');
+  assert.notStrictEqual(committed.message, 'not measured', "committed robustness.json must not be the false 'not measured' badge");
+
   assert.ok(renderAuditOnly('x').startsWith(MARKER), 'audit-only body must start with MARKER');
 
   // dispatcher: --badge / --comment must write to the REQUESTED path (the CI workflows pass _site/... paths).

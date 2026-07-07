@@ -28,6 +28,8 @@ export async function synthesizeCases(tools: Tool[], provider: Provider, seed: n
  *  or a flat [{name,description}] list — with or without a { tools: [...] } / { functions: [...] } wrapper. */
 export function loadTools(path: string): Tool[] {
   const raw = JSON.parse(readFileSync(path, 'utf8'));
+  // A JSON literal `null` / number / string would blow up on `.tools` with a cryptic TypeError.
+  if (raw == null || typeof raw !== 'object') throw new Error(`${path}: expected a JSON object/array`);
   const arr: any[] = Array.isArray(raw) ? raw : raw.tools ?? raw.functions ?? [];
   const tools = arr.map((t) => {
     const f = t.function ?? t;
@@ -52,9 +54,19 @@ const VERB = new Map<string, string>(Object.entries({
 }));
 const norm = (tok: string) => VERB.get(tok) ?? tok;
 
-const rawNameTokens = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean));
+// Unicode-aware split: token = a run of letters/numbers in ANY script (CJK, Cyrillic, …). The old
+// [^a-z0-9]+ split reduced non-ASCII names to EMPTY, so jaccard()=0 gave a false all-clear on them.
+const splitUni = (s: string) => s.normalize('NFC').toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+const rawNameTokens = (s: string) => new Set(splitUni(s));
 const nameTokens = (s: string) => new Set([...rawNameTokens(s)].map(norm));
-const descTokens = (s: string) => new Set(s.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !STOP.has(w)));
+const descTokens = (s: string) => new Set(splitUni(s).filter((w) => w.length > 2 && !STOP.has(w)));
+
+/** Tool names the confusability heuristic can't analyze because they tokenize to EMPTY — e.g. a
+ *  pure-emoji or pure-symbol name. Surfaced so a caller WARNs ("N tools have names the confusability
+ *  heuristic can't analyze") instead of the audit silently passing them as "not confusable". */
+export function unanalyzableTools(tools: Tool[]): string[] {
+  return tools.filter((t) => nameTokens(t.name).size === 0).map((t) => t.name);
+}
 
 function jaccard(a: Set<string>, b: Set<string>): number {
   if (!a.size || !b.size) return 0;

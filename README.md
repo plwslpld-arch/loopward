@@ -24,8 +24,8 @@ your own tools, scored by a deterministic ground-truth oracle (no LLM judge). It
 red-teams routing six ways, proposes and re-verifies fixes, compares loop strategies, and turns failures into a
 measured lift. Everyone is designing agent loops; almost nobody checks whether the loop's *decisions* hold up.
 
-> Thirteen frontier models route tools near-perfectly on clean inputs in our suite (most at 100%, none below 90%).
-> Add one injected line and the drop ranges from **0 points** (Claude Opus-4-8 barely moves) to **100** (Gemini-3.1-pro
+> Thirteen frontier models route tools near-perfectly on clean inputs in our suite (most at 100%, none below 97%).
+> Add one injected line and the drop ranges from **~2 points** (Claude Opus-4-8 barely moves) to **100** (Gemini-3.1-pro
 > gets it wrong on every case in this suite). Single-seed, n=42 — a pilot, not a ranking. See [`docs/findings.md`](./docs/findings.md).
 
 <picture>
@@ -87,9 +87,9 @@ The three that make it more than one-more-eval:
 
 - **`fix`** turns the diagnostic into a controller. The rename is a model-made *suggestion*; the re-measurement that
   proves it is strictly deterministic — a thing an LLM-judged eval structurally cannot claim.
-- **`matrix`** treats the harness as the independent variable. On GLM-5.1 a self-check node *recovers* +6.9pp under
-  attack (CI excludes 0); the same node *hurt* deepseek-chat. Whether a loop upgrade helps is a property of the
-  model-and-harness pair, not the harness alone.
+- **`matrix`** treats the harness as the independent variable. The same self-check node *hurts* deepseek-chat under
+  attack (−12pp on the confusion attacks) but is a *wash* on GLM-5.2 (≈0pp, CI includes 0). Whether a loop upgrade
+  helps — or hurts — is a property of the model-and-harness pair, not the harness alone.
 - **`flywheel`** closes the model↔harness loop end to end and measures a held-out lift — the co-evolution story shown,
   not asserted. It stays a demo (inject-and-re-measure), never a trainer.
 
@@ -141,8 +141,8 @@ comment on every PR. Full setup in [`docs/ci.md`](./docs/ci.md).
 
 Reproducible results across 13 models live in [`docs/findings.md`](./docs/findings.md). The short version:
 routing robustness is model-specific and does not track capability; the attacks that actually work are the boring
-ones (terse requests, lookalike names), not the adversarial-looking ones; a naive self-check loop can help one
-model and hurt another; and feeding tool observations back in a multi-step loop moved task success from 10% to 60%
+ones (terse requests, lookalike names), not the adversarial-looking ones; a naive self-check loop hurts one
+model and does nothing for another; and feeding tool observations back in a multi-step loop moved task success from 10% to 60%
 on the same model. The harness decides the outcome as much as the model does.
 
 ## What this is not

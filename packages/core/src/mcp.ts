@@ -187,8 +187,18 @@ export function fetchMcpTools(command: string, opts: FetchOpts = {}): Promise<Mc
     }
 
     child.on('error', (e) => fail(new Error(`failed to spawn MCP server '${argv[0]}': ${e.message}`)));
-    child.on('exit', (code, signal) => {
+    // 'close' (not 'exit'): 'exit' can fire while buffered stdout 'data' is still unprocessed, so a server
+    // that writes tools/list then exit(0)s was misreported as "closed before completing". 'close' fires
+    // only after stdio has drained; we ALSO flush any final line written without a trailing newline.
+    child.on('close', (code, signal) => {
       if (settled) return;
+      const tail = buf.trim();
+      if (tail) {
+        buf = '';
+        let msg: any;
+        try { msg = JSON.parse(tail); } catch { msg = undefined; }
+        if (msg !== undefined) { handle(msg); if (settled) return; }
+      }
       if (code && code !== 0) {
         fail(new Error(`MCP server '${command}' exited with code ${code}${stderr ? ` (stderr: ${stderr.trim().slice(-500)})` : ''}`));
       } else {

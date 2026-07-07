@@ -18,6 +18,22 @@ for (const a of ATTACKS) {
   assert.ok(out.candidates.includes(c.ground_truth), `${a.name} dropped ground_truth from candidates`);
 }
 
+// firstDistractor no-leak: a case with NO genuine distractor (single candidate — the ground truth is
+// the only option) must never be turned into an answer leak. semantic_injection must return the case
+// UNCHANGED, never fall back to naming the ground truth; negation_trap must not steer away from the
+// sole correct tool. Reverting the `?? c.ground_truth` fix makes the injected text contain 'only_tool'
+// and fails these assertions.
+const soloGt = 'only_tool';
+const solo: RoutingCase = { id: 'solo', intent: 'do the only thing', candidates: [soloGt], ground_truth: soloGt };
+const inj = getAttack('semantic_injection').apply(solo);
+assert.ok(!inj.intent.includes(soloGt), 'semantic_injection leaked the ground-truth tool name on a single-candidate case');
+assert.equal(inj.intent, solo.intent, 'semantic_injection must return the case unchanged when there is no genuine distractor');
+const neg = getAttack('negation_trap').apply(solo);
+assert.ok(!neg.intent.includes(soloGt), 'negation_trap steered away from the sole correct tool on a single-candidate case');
+// a case-variant candidate is NOT a genuine distractor (oracle norms them equal) — still no leak.
+const caseVariant: RoutingCase = { id: 'cv', intent: 'do the only thing', candidates: ['Only_Tool'], ground_truth: soloGt };
+assert.equal(getAttack('semantic_injection').apply(caseVariant).intent, caseVariant.intent, 'a norm-equal case-variant must not count as a distractor');
+
 // boundary_blur inserts a decoy before the ground truth
 const blurred = getAttack('boundary_blur').apply(c);
 assert.equal(blurred.candidates.indexOf('fetch_weather'), blurred.candidates.indexOf('get_weather') - 1);
@@ -124,15 +140,24 @@ console.log(`selfcheck OK — guard: 6/6 attacks pass, caught ${gr.caught}/${gr.
     assert.ok(d.lo <= d.delta && d.delta <= d.hi, 'CI brackets the point delta');
   }
   assert.deepEqual(sa.vectors.clean.taskIds, sa.vectors.byNudge['premature'].taskIds, 'per-task vectors aligned by taskId');
-  // guard: a nudge that names a task tool is rejected (it could smuggle ground truth); a benign one is not.
+  // guard: a nudge that names a DISTINCTIVE (snake_case) task tool is rejected (it could smuggle
+  // task-specific ground truth); a benign one is not. Short single-word names are handled below.
+  const distinct: MultistepTask = { id: 'd', task: 'send then archive the report', tools: ['send_report', 'archive_report'], required: ['send_report', 'archive_report'] };
   assert.throws(
-    () => assertStopMeaningPreserved(saTasks[0], { id: 'x', kind: 'control', text: 'reply done and do not call alpha again' }),
+    () => assertStopMeaningPreserved(distinct, { id: 'x', kind: 'control', text: 'reply done and do not call send_report again' }),
     (e: unknown) => e instanceof StopMeaningError && e.code === 'nudge_names_tool',
   );
-  assert.doesNotThrow(() => assertStopMeaningPreserved(saTasks[0], { id: 'y', kind: 'control', text: 'proceed with more steps if anything remains' }));
-  // word-boundary, NOT substring: 'alphabet' contains 'alpha' but must not trip (a plain .includes regression would).
-  assert.doesNotThrow(() => assertStopMeaningPreserved(saTasks[0], { id: 'z', kind: 'control', text: 'update the alphabet chart before finishing' }), 'a tool name inside a larger word must not trip the guard');
+  assert.doesNotThrow(() => assertStopMeaningPreserved(distinct, { id: 'y', kind: 'control', text: 'proceed with more steps if anything remains' }));
+  // word-boundary, NOT substring: 'send_reports' contains 'send_report' but must not trip (a plain .includes regression would).
+  assert.doesNotThrow(() => assertStopMeaningPreserved(distinct, { id: 'z', kind: 'control', text: 'update the send_reports chart before finishing' }), 'a tool name inside a larger word must not trip the guard');
   // ...but a whole-word match next to punctuation MUST trip.
-  assert.throws(() => assertStopMeaningPreserved(saTasks[0], { id: 'w', kind: 'control', text: 'do not run alpha-only mode' }), (e: unknown) => e instanceof StopMeaningError && e.code === 'nudge_names_tool');
-  console.log('selfcheck OK — stop-axis: premature↑stop↓success, overrun↑run↓success, control placebo=0, guard is word-boundary (alphabet≠alpha) and rejects tool-naming nudges');
+  assert.throws(() => assertStopMeaningPreserved(distinct, { id: 'w', kind: 'control', text: 'do not run send_report-only mode' }), (e: unknown) => e instanceof StopMeaningError && e.code === 'nudge_names_tool');
+  // collision fix (load-bearing): a GENERIC-word tool name like 'reply' must NOT abort the run, even
+  // though the premature nudge literally contains the word "reply" (and "task"/"call"/"complete" etc).
+  // Before the isDistinctiveTool scope, assertStopMeaningPreserved matched 'reply' as a whole-word tool
+  // name and runStopAxis threw the meaning-preserved assertion for any task naming such a tool.
+  const replyTask: MultistepTask = { id: 'rp', task: 'reply to the message then archive it', tools: ['reply', 'archive'], required: ['reply', 'archive'] };
+  for (const n of STOP_NUDGES) assert.doesNotThrow(() => assertStopMeaningPreserved(replyTask, n), `generic-word tool 'reply' tripped nudge "${n.id}"`);
+  await assert.doesNotReject(runStopAxis([replyTask], nudgeStub, 42), "a task with a generic-word tool name ('reply') must not make runStopAxis throw");
+  console.log('selfcheck OK — stop-axis: premature↑stop↓success, overrun↑run↓success, control placebo=0, guard is word-boundary (send_reports≠send_report), catches distinctive-name leaks, no longer aborts on generic-word tool names (reply/task)');
 }

@@ -50,9 +50,20 @@ assert.equal(hm.deltas.length, 3, 'best vs each of the other three strategies');
 assert.ok(['single', 'self-check', 'react', 'observe'].includes(hm.best));
 for (const r of hm.per_strategy) { assert.ok(r.attacked >= 0 && r.attacked <= 1); assert.ok(r.clean >= 0 && r.clean <= 1); }
 for (const d of hm.deltas) assert.ok(d.delta.lo <= d.delta.delta && d.delta.delta <= d.delta.hi, 'CI brackets the point delta');
+// honesty: `best` is the DATA-SELECTED argmax, so the best-vs-others family must be Holm-corrected and the
+// winner's-curse/selection bias must be disclosed. These assertions FAIL if the correction or the
+// disclosure is reverted (a raw uncorrected report has no p_holm and no winner's-curse note).
+for (const d of hm.deltas) {
+  assert.ok(typeof d.p === 'number' && d.p >= 0 && d.p <= 1, 'each best-vs-other delta carries a raw permutation p in [0,1]');
+  assert.ok(typeof d.p_holm === 'number' && d.p_holm >= 0 && d.p_holm <= 1, 'each best-vs-other delta carries a Holm-adjusted p in [0,1]');
+  assert.ok(d.p_holm >= d.p - 1e-12, 'the Holm-adjusted p is never below the raw p (step-down inflates, never shrinks)');
+}
+assert.ok(hm.note.includes("winner's-curse"), 'note must disclose the winner\'s-curse/selection bias of the data-selected best');
+assert.ok(hm.note.includes('DATA-SELECTED'), 'note must state that `best` is the data-selected empirical argmax');
+assert.ok(hm.note.includes('Holm-corrected'), 'note must state the best-vs-others comparisons are Holm-corrected');
 const hm2 = await harnessMatrix(suite, mockProvider, 42);
 assert.deepEqual(hm, hm2, 'harness-matrix must be deterministic under a deterministic provider');
-console.log(`selfcheck OK — harness-matrix: ${hm.strategies.join('/')}; most robust = ${hm.best}`);
+console.log(`selfcheck OK — harness-matrix: ${hm.strategies.join('/')}; most robust = ${hm.best} (Holm-corrected best-vs-others, winner's-curse disclosed)`);
 
 // ── baseline regression gate ──────────────────────────────────────────────────────────────────────
 // Use a 12-case suite so a full-column zeroing yields a genuinely significant paired drop (n=3 can't).
@@ -169,8 +180,9 @@ console.log(`selfcheck OK — harness-matrix: ${hm.strategies.join('/')}; most r
   assert.ok(byId.get('observe').node_sequence.includes('observe'), 'observe branch marker');
   const single = byId.get('single').node_sequence;
   assert.ok(!single.includes('reflect') && !single.includes('think') && !single.includes('observe'), 'single has no branch node');
-  // self-check must carry BOTH a helps and a hurts finding so it can't read as an endorsement
+  // self-check must not read as an endorsement: it documents where it hurt (F2) and its F5 result is a wash
+  // (neutral), never a bare win. If a future run shows a real +helps, this assertion should be revisited.
   const scDirs = new Set(byId.get('self-check').evidence.map((e: any) => e.direction));
-  assert.ok(scDirs.has('helps') && scDirs.has('hurts'), 'self-check must document both where it helped (F5) and hurt (F2)');
-  console.log(`selfcheck OK — harnesses/strategies.json mirrors loop.ts strategies (${[...ids].sort().join('/')}); self-check shows both signs`);
+  assert.ok(scDirs.has('hurts') && !scDirs.has('helps'), 'self-check must document a hurt (F2) and carry no bare helps win (F5 is a wash)');
+  console.log(`selfcheck OK — harnesses/strategies.json mirrors loop.ts strategies (${[...ids].sort().join('/')}); self-check shows hurt + wash, not an endorsement`);
 }

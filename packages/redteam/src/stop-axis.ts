@@ -69,11 +69,26 @@ function namesTool(text: string, tool: string): boolean {
   return re.test(norm(text));
 }
 
+// A stop nudge is a fixed GLOBAL English string, so it unavoidably contains generic filler words like
+// "reply", "task", "call", "complete", "missing". Those are NOT distinctive tool identifiers: whether
+// they appear is a property of the English sentence, not of the task, so they cannot encode which tool
+// is correct. Only a DISTINCTIVE tool name can smuggle task-specific ground truth — a multi-token
+// snake_case name (contains '_'), or a single token too long to be ordinary English filler. So the
+// collision check is scoped to distinctive names; a task that happens to name a tool after a common
+// short word (e.g. a real tool literally named 'reply' or 'task') no longer aborts the whole run.
+const GENERIC_TOOL_MAXLEN = 8; // length of "complete", the longest generic filler token in STOP_NUDGES
+function isDistinctiveTool(tool: string): boolean {
+  const t = norm(tool);
+  return t.includes('_') || t.length > GENERIC_TOOL_MAXLEN;
+}
+
 /** Fail loud if a nudge could encode task-specific ground truth by naming one of the task's tools.
- *  A stop-bias nudge must move ONLY the halt decision, never reveal which tool to call. */
+ *  A stop-bias nudge must move ONLY the halt decision, never reveal which tool to call. Only
+ *  DISTINCTIVE tool names are checked (see isDistinctiveTool) so generic English filler that collides
+ *  with a common-word tool name cannot abort an innocuous run. */
 export function assertStopMeaningPreserved(task: MultistepTask, nudge: StopNudge): void {
   for (const tool of task.tools) {
-    if (namesTool(nudge.text, tool))
+    if (isDistinctiveTool(tool) && namesTool(nudge.text, tool))
       throw new StopMeaningError(
         'nudge_names_tool',
         `nudge "${nudge.id}" names task tool "${tool}" for task "${task.id}" — a stop nudge must not encode task-specific ground truth`,
