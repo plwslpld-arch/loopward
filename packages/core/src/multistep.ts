@@ -27,7 +27,7 @@ export interface MultistepResult {
 const DONE = 'done';
 const lc = (s: string) => s.trim().toLowerCase();
 
-export async function runMultistep(task: MultistepTask, provider: Provider, seed: number, maxExtra = 3): Promise<MultistepResult> {
+export async function runMultistep(task: MultistepTask, provider: Provider, seed: number, maxExtra = 3, stopNudge?: string): Promise<MultistepResult> {
   const maxSteps = task.required.length + maxExtra;
   const called: string[] = [];
   const trajectory: { step: number; action: string }[] = [];
@@ -42,7 +42,10 @@ export async function runMultistep(task: MultistepTask, provider: Provider, seed
     const prompt =
       `Task: ${task.task}\n${history}\n` +
       `Call one tool at a time; each tool you need should be called once. ` +
-      `Reply with the single next tool to call, or "${DONE}" if every step the task needs is already done.`;
+      `Reply with the single next tool to call, or "${DONE}" if every step the task needs is already done.` +
+      // stop-axis probe: a task-independent nudge appended ONLY to the stop-decision instruction.
+      // The task, tools, and required set are untouched, so the deterministic oracle scoring below is unchanged.
+      (stopNudge ? `\n${stopNudge}` : '');
     const { tool } = await provider.route(prompt, [...task.tools, DONE], seed);
     trajectory.push({ step: i, action: tool });
     if (lc(tool) === DONE) { stopped = true; break; }

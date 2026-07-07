@@ -5,6 +5,7 @@
 // pseudo-replication that manufactures significance. The real uncertainty is the case-level paired
 // bootstrap already in the report; we add a directional permutation p and Holm correction over it.
 import type { AttackReport } from '../../../redteam/src/attack-run.ts';
+import type { StopAxisReport } from '../../../redteam/src/stop-axis.ts';
 import { bootstrapDeltaCI, mean, rng, type DeltaCI } from '../../../redteam/src/metrics.ts';
 
 /** Holm step-down (family-wise) correction. Returns adjusted p-values in the input order,
@@ -77,5 +78,67 @@ export function correctAttacks(report: AttackReport, opts: { alpha?: number; per
     provider: report.provider, seed: report.seed, alpha,
     note: `single-seed, n=${matrix.length}. p is a one-sided paired permutation test; Holm controls the family-wise error rate across the ${raw.length} attacks; an attack is "significant" only if Holm-p < ${alpha} AND its one-sided CI excludes 0.`,
     attacks: raw.map((r, i) => ({ attack: r.attack, delta: r.ci.delta, ci: r.ci, p: r.p, p_holm: pHolm[i], dz: r.dz, significant: pHolm[i] < alpha && r.ci.lo > 0 })),
+  };
+}
+
+// ── stop-axis correction ────────────────────────────────────────────────────────────────────────
+// The stop-axis probe produces a family of (nudge × {premature_stop, over_run, success}) cells. Each
+// cell's expected direction is PRE-REGISTERED from the nudge's intent, so the placebo control gets no
+// directional prior and cannot be gamed into significance. Holm controls the family-wise error across
+// the whole grid; a cell is significant only if Holm-p < alpha AND its paired bootstrap CI excludes 0
+// in the registered direction. Reuses the exact permutation/Holm machinery above — no second scorer.
+type StopMetric = 'premature_stop' | 'over_run' | 'success';
+type StopDirection = 'up' | 'down' | 'two-sided';
+
+/** premature → premature_stop↑, success↓; overrun → over_run↑, success↓; control & off-target → two-sided. */
+function stopDirection(kind: 'premature' | 'overrun' | 'control', metric: StopMetric): StopDirection {
+  if (kind === 'premature') return metric === 'premature_stop' ? 'up' : metric === 'success' ? 'down' : 'two-sided';
+  if (kind === 'overrun') return metric === 'over_run' ? 'up' : metric === 'success' ? 'down' : 'two-sided';
+  return 'two-sided';
+}
+
+export interface StopCellStat {
+  nudge: string;
+  kind: 'premature' | 'overrun' | 'control';
+  metric: StopMetric;
+  direction: StopDirection;
+  delta: number;   // mean(perturbed) - mean(clean)  (>0 = nudge raised the rate)
+  ci: DeltaCI;
+  p: number;       // permutation p in the pre-registered direction
+  p_holm: number;  // Holm-adjusted across the whole nudge × metric family
+  significant: boolean;
+}
+export interface CorrectedStopReport { provider: string; seed: number; alpha: number; note: string; cells: StopCellStat[] }
+
+const STOP_METRICS: StopMetric[] = ['premature_stop', 'over_run', 'success'];
+
+export function correctStopAxis(report: StopAxisReport, opts: { alpha?: number; permSeed?: number; B?: number } = {}): CorrectedStopReport {
+  const alpha = opts.alpha ?? 0.05;
+  const permSeed = opts.permSeed ?? 1337;
+  const B = opts.B ?? 2000;
+  const clean = report.vectors.clean;
+  const raw = report.per_nudge.flatMap((nu) => {
+    const pv = report.vectors.byNudge[nu.id];
+    return STOP_METRICS.map((metric) => {
+      const perturbed = pv[metric];
+      const cleanCol = clean[metric];
+      const direction = stopDirection(nu.kind, metric);
+      const ci = bootstrapDeltaCI(perturbed, cleanCol, report.seed); // delta = mean(perturbed) - mean(clean)
+      // one-sided test in the registered direction; 'down' flips the arguments so the same 'greater' test applies
+      const p = direction === 'up' ? permutationPValue(perturbed, cleanCol, permSeed, B, 'greater')
+        : direction === 'down' ? permutationPValue(cleanCol, perturbed, permSeed, B, 'greater')
+        : permutationPValue(perturbed, cleanCol, permSeed, B, 'two-sided');
+      return { nudge: nu.id, kind: nu.kind, metric, direction, delta: ci.delta, ci, p };
+    });
+  });
+  const pHolm = holm(raw.map((r) => r.p));
+  const cells: StopCellStat[] = raw.map((r, i) => {
+    const excludesZero = r.direction === 'up' ? r.ci.lo > 0 : r.direction === 'down' ? r.ci.hi < 0 : (r.ci.lo > 0 || r.ci.hi < 0);
+    return { ...r, p_holm: pHolm[i], significant: pHolm[i] < alpha && excludesZero };
+  });
+  return {
+    provider: report.provider, seed: report.seed, alpha,
+    note: `stop-axis: ${report.per_nudge.length} nudges × 3 metrics = ${cells.length} cells. Directions are PRE-REGISTERED (premature→premature_stop↑, success↓; overrun→over_run↑, success↓; control & off-target cells two-sided). One-sided sign-flip permutation p in the registered direction; Holm controls FWER across the whole family; a cell is "significant" only if Holm-p < ${alpha} AND its paired bootstrap CI excludes 0. The control nudge is a placebo and should NOT be flagged.`,
+    cells,
   };
 }

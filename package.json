@@ -5,15 +5,16 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": { "loopward": "dist/packages/cli/src/cli.js" },
-  "files": ["dist", "datasets", "docs", "LICENSE", "NOTICE", "PROVENANCE.md"],
+  "files": ["dist", "datasets", "docs", "harnesses", "LICENSE", "NOTICE", "PROVENANCE.md"],
   "repository": { "type": "git", "url": "git+https://github.com/plwslpld-arch/loopward.git" },
   "homepage": "https://github.com/plwslpld-arch/loopward#readme",
   "bugs": "https://github.com/plwslpld-arch/loopward/issues",
   "engines": { "node": ">=24" },
   "scripts": {
-    "test": "node packages/core/src/selfcheck.ts && node packages/redteam/src/selfcheck.ts && node packages/coevo/src/selfcheck.ts && node packages/eval/src/selfcheck.ts && node packages/coevo/experiments/micro-loop/selfcheck.ts && node packages/eval/src/stats/selfcheck.ts",
+    "test": "node packages/core/src/selfcheck.ts && node packages/redteam/src/selfcheck.ts && node packages/coevo/src/selfcheck.ts && node packages/eval/src/selfcheck.ts && node packages/coevo/experiments/micro-loop/selfcheck.ts && node packages/eval/src/stats/selfcheck.ts && node packages/ci/src/selfcheck.ts && node packages/dashboard/selfcheck.ts && node scripts/heatmap.selfcheck.mjs",
     "loopward": "node packages/cli/src/cli.ts",
     "dashboard": "node packages/dashboard/build.mjs",
+    "heatmap": "node scripts/heatmap.mjs",
     "regenerate-all": "node scripts/regenerate-all.mjs",
     "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "prepack": "npm run build && chmod +x dist/packages/cli/src/cli.js"

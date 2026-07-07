@@ -28,7 +28,6 @@ the model with `--model`.
 |---------------|-----------------------------------------------------|----------------------|
 | `openai`      | `https://api.openai.com/v1`                         | `OPENAI_API_KEY`     |
 | `deepseek`    | `https://api.deepseek.com/v1`                       | `DEEPSEEK_API_KEY`   |
-| `openrouter`  | `https://openrouter.ai/api/v1`                      | `OPENROUTER_API_KEY` |
 | `together`    | `https://api.together.xyz/v1`                       | `TOGETHER_API_KEY`   |
 | `groq`        | `https://api.groq.com/openai/v1`                    | `GROQ_API_KEY`       |
 | `moonshot`    | `https://api.moonshot.cn/v1`                        | `MOONSHOT_API_KEY`   |

@@ -119,7 +119,7 @@ export const PROVIDER_NAMES = ['mock', ...Object.keys(PRESETS)];
  * lives in the repo. `--base-url` overrides a preset, so any OpenAI-compatible endpoint works
  * even under a preset name.
  *   mock — offline, deterministic, no key
- *   <preset> — e.g. openai | deepseek | openrouter | groq | dmx ... (key from its env var)
+ *   <preset> — e.g. openai | deepseek | moonshot | groq ... (key from its env var)
  */
 export function getProvider(name: string, opts: { model?: string; baseURL?: string } = {}): Provider {
   if (name === 'mock') return mockProvider;

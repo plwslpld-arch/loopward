@@ -78,8 +78,7 @@
   td.rowlab { border-top:1px solid var(--line); }
   .colhead { display:inline-flex; align-items:center; gap:4px; justify-content:center; }
   .q { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border:1px solid var(--line); border-radius:50%; font-size:9px; font-weight:600; color:var(--muted); cursor:help; position:relative; }
-  .q::after { content:attr(data-tip); position:absolute; top:150%; left:50%; transform:translateX(-50%); width:210px; background:var(--ink); color:var(--bg); padding:9px 11px; border-radius:9px; font-size:11.5px; font-weight:400; line-height:1.5; font-family:var(--sans); letter-spacing:0; text-transform:none; text-align:left; white-space:normal; opacity:0; pointer-events:none; transition:opacity .12s; z-index:20; box-shadow:0 6px 20px #0006; }
-  .q:hover::after, .q:focus::after { opacity:1; }
+  .q-tip { position:fixed; display:none; opacity:0; z-index:1000; max-width:240px; width:max-content; background:var(--ink); color:var(--bg); padding:9px 11px; border-radius:9px; font-size:11.5px; font-weight:400; line-height:1.5; font-family:var(--sans); text-align:left; white-space:normal; pointer-events:none; box-shadow:0 6px 20px #0006; transition:opacity .12s; }
 
   .bars { display:grid; gap:8px; }
   .barrow { display:grid; grid-template-columns:150px 1fr; align-items:center; gap:12px; font-size:13px; }
@@ -337,6 +336,37 @@ render();
 document.getElementById("lang").onclick=()=>{ lang = lang==="en"?"zh":"en"; render(); };
 const root=document.documentElement;
 document.getElementById("theme").onclick=()=>{ const cur=root.getAttribute("data-theme")||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"); root.setAttribute("data-theme", cur==="dark"?"light":"dark"); };
+
+// Floating tooltip: a single body-appended position:fixed element, so it escapes the
+// scroll box's overflow clipping and stacking context that swallowed the old pseudo-element.
+(function(){
+  const tip=document.createElement("div");
+  tip.className="q-tip"; tip.id="q-tip"; tip.setAttribute("role","tooltip");
+  document.body.appendChild(tip);
+  let cur=null;
+  function show(q){
+    const txt=q.getAttribute("data-tip"); if(!txt) return;
+    cur=q; tip.textContent=txt;             // textContent, not innerHTML: no XSS / double-escape
+    tip.style.display="block"; tip.style.opacity="0";
+    const r=q.getBoundingClientRect();
+    const tw=tip.offsetWidth, th=tip.offsetHeight, m=8, vw=innerWidth, vh=innerHeight;
+    let top=r.bottom+m;                       // prefer below
+    if(top+th>vh-m && r.top-m-th>=m) top=r.top-m-th;  // flip above if no room below
+    let left=r.left+r.width/2-tw/2;           // center horizontally on the icon
+    left=Math.max(m, Math.min(left, vw-tw-m)); // clamp to viewport
+    top=Math.max(m, Math.min(top, vh-th-m));
+    tip.style.left=left+"px"; tip.style.top=top+"px"; tip.style.opacity="1";
+    q.setAttribute("aria-describedby","q-tip");
+  }
+  function hide(){ tip.style.display="none"; tip.style.opacity="0"; if(cur){ cur.removeAttribute("aria-describedby"); cur=null; } }
+  document.addEventListener("mouseover",e=>{ const q=e.target.closest && e.target.closest(".q"); if(q) show(q); });
+  document.addEventListener("mouseout",e=>{ const q=e.target.closest && e.target.closest(".q"); if(q) hide(); });
+  document.addEventListener("focusin",e=>{ const q=e.target.closest && e.target.closest(".q"); if(q) show(q); });
+  document.addEventListener("focusout",e=>{ const q=e.target.closest && e.target.closest(".q"); if(q) hide(); });
+  document.addEventListener("keydown",e=>{ if(e.key==="Escape") hide(); });
+  addEventListener('scroll',hide,true);
+  addEventListener('resize',hide);
+})();
 </script>
 </body>
 </html>

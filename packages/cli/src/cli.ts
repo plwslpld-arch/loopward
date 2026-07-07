@@ -15,7 +15,12 @@ import { gitSha, type StampInput } from '../../core/src/manifest.ts';
 import { verifyReport, formatVerify } from '../../eval/src/verify.ts';
 import { harnessMatrix, DEFAULT_STRATEGIES } from '../../eval/src/harness-portability/harness-matrix.ts';
 import { runFlywheel } from '../../coevo/experiments/micro-loop/flywheel.ts';
-import { correctAttacks } from '../../eval/src/stats/multiseed.ts';
+import { correctAttacks, correctStopAxis } from '../../eval/src/stats/multiseed.ts';
+import { aggregateSeeds } from '../../eval/src/stats/seed-sweep.ts';
+import { regressionGate, formatGate } from '../../eval/src/gate.ts';
+import { buildAuditSarif } from '../../core/src/sarif.ts';
+import { fetchMcpTools, normalizeSavedToolsList, toToolsFile } from '../../core/src/mcp.ts';
+import { runStopAxis, STOP_NUDGES, type StopAxisReport } from '../../redteam/src/stop-axis.ts';
 
 function loadSuite(path: string): RoutingCase[] {
   const data = JSON.parse(readFileSync(path, 'utf8'));
@@ -194,6 +199,7 @@ async function cmdMatrix(suite: string | undefined, toolsPath: string | undefine
   for (const d of rep.deltas) console.log(`  ${d.a} − ${d.b}:  ${pp(d.delta.delta)}  [${pp(d.delta.lo)}, ${pp(d.delta.hi)}]`);
   console.log(`\n${rep.note}`);
   console.log(`report → ${outPath}`);
+  console.log(`strategy definitions + where each has helped/hurt: harnesses/README.md`);
 }
 
 async function cmdFlywheel(suite: string | undefined, toolsPath: string | undefined, providerName: string, seed: number, ratio: number, out: string | undefined, po: ProviderOpts) {
@@ -220,9 +226,24 @@ async function cmdFlywheel(suite: string | undefined, toolsPath: string | undefi
   console.log(`receipt → ${outPath}`);
 }
 
-function cmdStats(reportPath: string) {
-  const rep = JSON.parse(readFileSync(reportPath, 'utf8')) as AttackReport;
-  const c = correctAttacks(rep);
+function cmdStats(reportPath: string, alpha: number) {
+  const rep = JSON.parse(readFileSync(reportPath, 'utf8'));
+  // stop-axis reports carry per_nudge + clean_rates; attack reports carry attacks[] + matrix.
+  if (rep.per_nudge && rep.clean_rates) {
+    const c = correctStopAxis(rep as StopAxisReport, { alpha });
+    console.log(`provider=${c.provider} seed=${c.seed}  alpha=${c.alpha}  (stop-axis)\n`);
+    console.log('nudge      metric            dir        delta     95% CI               p      Holm-p   sig');
+    console.log('─'.repeat(92));
+    for (const cell of c.cells) {
+      console.log(
+        `${cell.nudge.padEnd(10)} ${cell.metric.padEnd(16)} ${cell.direction.padEnd(9)} ${pp(cell.delta).padStart(7)}  ` +
+          `[${pp(cell.ci.lo)}, ${pp(cell.ci.hi)}]  ${cell.p.toFixed(3)}  ${cell.p_holm.toFixed(3)}  ${cell.significant ? 'yes' : 'no'}`,
+      );
+    }
+    console.log(`\n${c.note}`);
+    return;
+  }
+  const c = correctAttacks(rep as AttackReport, { alpha });
   console.log(`provider=${c.provider} seed=${c.seed}  alpha=${c.alpha}\n`);
   console.log('attack                  delta     95% CI               p      Holm-p   dz     sig');
   console.log('─'.repeat(84));
@@ -243,11 +264,23 @@ function cmdVerify(reportPath: string) {
   process.exit(result.pass ? 0 : 1);
 }
 
-function cmdAudit(toolsPath: string, failOnHigh?: boolean) {
+function cmdAudit(toolsPath: string, failOnHigh?: boolean, sarifPath?: string) {
   const tools = loadTools(toolsPath);
   const pairs = auditConfusability(tools);
+  // SARIF is written first (before any early return or fail-on-high exit) so the file always lands —
+  // an empty results[] is valid and correctly clears prior code-scanning alerts.
+  if (sarifPath) {
+    const raw = readFileSync(toolsPath, 'utf8');
+    const log = buildAuditSarif(pairs, { toolsUri: toolsPath.replace(/\\/g, '/'), rawToolsText: raw });
+    mkdirSync(dirname(sarifPath), { recursive: true });
+    writeFileSync(sarifPath, JSON.stringify(log, null, 2) + '\n');
+  }
   console.log(`audited ${tools.length} tools, found ${pairs.length} confusable pair(s) (no model calls)\n`);
-  if (!pairs.length) { console.log('no obviously confusable tool pairs. nice catalog.'); return; }
+  if (!pairs.length) {
+    console.log('no obviously confusable tool pairs. nice catalog.');
+    if (sarifPath) console.log(`sarif → ${sarifPath}`);
+    return;
+  }
   console.log('risk   pair                                        shared');
   console.log('─'.repeat(70));
   for (const p of pairs) {
@@ -256,10 +289,120 @@ function cmdAudit(toolsPath: string, failOnHigh?: boolean) {
     console.log(`${risk}  ${pair.slice(0, 42).padEnd(42)}  ${p.sharedTokens.join(', ') || '(similar descriptions)'}`);
   }
   console.log(`\nthese pairs are the ones a router is most likely to mix up. rename, merge, or disambiguate descriptions.`);
+  if (sarifPath) console.log(`sarif → ${sarifPath}`);
   const high = pairs.filter((p) => p.score >= 0.5);
   if (failOnHigh && high.length) {
     console.error(`\nFAIL: ${high.length} HIGH-risk confusable pair(s) with --fail-on-high set`);
     process.exit(1);
+  }
+}
+
+async function cmdMcpTools(server: string | undefined, from: string | undefined, out: string | undefined, opts: { protocol?: string; timeout?: number }) {
+  if (opts.timeout !== undefined && (!Number.isFinite(opts.timeout) || opts.timeout <= 0)) throw new Error('--timeout must be a positive number of milliseconds');
+  let result;
+  if (server) {
+    console.error(`⚠ executing MCP server command locally: ${server}`);
+    console.error('  (this runs the command you passed — only import from servers you trust)');
+    result = await fetchMcpTools(server, { env: process.env, protocol: opts.protocol, timeoutMs: opts.timeout });
+  } else if (from) {
+    result = normalizeSavedToolsList(JSON.parse(readFileSync(from, 'utf8')));
+    if (!result.tools.length) throw new Error(`${from}: no tools in the saved MCP response`);
+  } else throw new Error('mcp-tools needs --server "<cmd>" or --from <saved.json>');
+
+  const file = toToolsFile(result, server ?? from!, new Date().toISOString());
+  const outPath = out ?? 'runs/mcp-tools.json';
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(file, null, 2) + '\n');
+
+  const count = (file as { tools: unknown[] }).tools.length;
+  const info = result.serverInfo ? ` from ${result.serverInfo.name ?? 'server'}${result.serverInfo.version ? ' ' + result.serverInfo.version : ''}` : '';
+  console.log(`imported ${count} tool(s)${info}${result.protocolVersion ? ` (MCP ${result.protocolVersion})` : ''}`);
+  console.log('note: an MCP catalog is a point-in-time snapshot; a later fetch may differ.');
+  console.log(`tools → ${outPath}`);
+  console.log(`next:  loopward audit --tools ${outPath}`);
+}
+
+function cmdGate(baselinePath: string, currentPath: string, opts: { tolerance?: number; alpha?: number; unpaired?: boolean; allowSchemaChange?: boolean }) {
+  const baseline = JSON.parse(readFileSync(baselinePath, 'utf8')) as AttackReport;
+  const current = JSON.parse(readFileSync(currentPath, 'utf8')) as AttackReport;
+  const result = regressionGate(baseline, current, opts);
+  console.log(`gate: baseline ${baselinePath}  vs  current ${currentPath}\n`);
+  console.log(formatGate(result));
+  process.exit(result.pass ? 0 : 1);
+}
+
+async function cmdMultiseed(suite: string | undefined, toolsPath: string | undefined, providerName: string, seedsArg: string | undefined, reportsArg: string | undefined, variant: Variant, out: string | undefined, po: ProviderOpts, alpha: number, failUnder?: number) {
+  let report;
+  if (reportsArg) {
+    const reports = reportsArg.split(',').map((s) => s.trim()).filter(Boolean).map((p) => JSON.parse(readFileSync(p, 'utf8')) as AttackReport);
+    report = aggregateSeeds(reports, { alpha });
+  } else {
+    const seeds = [...new Set((seedsArg ?? '').split(',').map((s) => Number(s.trim())).filter((n) => Number.isFinite(n)))];
+    if (!seeds.length) throw new Error('multiseed run mode needs --seeds <comma-separated ints> (or --reports to aggregate saved reports)');
+    const provider = getProvider(providerName, po);
+    let cases: RoutingCase[];
+    if (toolsPath) { const tools = loadTools(toolsPath); console.log(`synthesizing ${tools.length} test intents from your tools with ${provider.name}...`); cases = await synthesizeCases(tools, provider, seeds[0]); }
+    else cases = loadSuite(suite!);
+    const reports: AttackReport[] = [];
+    for (const s of seeds) { console.log(`seed ${s}...`); reports.push(await runAttacks(cases, provider, s, undefined, variant, stamp())); }
+    report = aggregateSeeds(reports, { alpha });
+  }
+  const outPath = out ?? `runs/multiseed-${report.provider.replace(/[^\w.-]/g, '_')}-${report.variant}-seeds${report.seeds.join('_')}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(report, null, 2));
+
+  console.log(`\nprovider=${report.provider} variant=${report.variant}  seeds=[${report.seeds.join(', ')}]  n=${report.n_cases}\n`);
+  console.log('attack                  mean Δ    range              SD       sig    identical?');
+  console.log('─'.repeat(80));
+  for (const a of [...report.attacks].sort((x, y) => y.mean_delta - x.mean_delta)) {
+    const sd = a.sd_delta === null ? 'n/a' : (a.sd_delta * 100).toFixed(1) + 'pp';
+    console.log(`${a.attack.padEnd(22)} ${pp(a.mean_delta).padStart(7)}  [${pp(a.min_delta)}, ${pp(a.max_delta)}]  ${sd.padStart(7)}  ${(a.significant_in + '/' + a.n_seeds).padStart(5)}   ${a.identical_across_seeds ? 'yes' : 'no'}`);
+  }
+  if (report.degenerate) console.log('\n⚠ DEGENERATE: every attack is bit-identical across seeds (a temp-0 / seed-ignoring provider). SD=0 means no independent replication happened, NOT certainty.');
+  console.log(`\n${report.note}`);
+  console.log(`report → ${outPath}`);
+
+  if (failUnder !== undefined) {
+    const cleanMean = report.clean_accuracy_by_seed.reduce((a, b) => a + b, 0) / (report.clean_accuracy_by_seed.length || 1);
+    const worst = report.attacks.reduce((m, a) => Math.min(m, cleanMean - a.mean_delta), 1);
+    if (worst * 100 < failUnder) { console.error(`\nFAIL: worst mean-across-seeds attacked accuracy ${pct(worst)} is under --fail-under ${failUnder}%`); process.exit(1); }
+    console.log(`gate ok: worst mean-across-seeds attacked accuracy ${pct(worst)} >= ${failUnder}%`);
+  }
+}
+
+async function cmdStopAxis(suite: string, providerName: string, seed: number, out: string | undefined, po: ProviderOpts, failOnFragile: boolean, alpha: number) {
+  const data = JSON.parse(readFileSync(suite, 'utf8'));
+  const tasks: MultistepTask[] = Array.isArray(data) ? data : data.tasks;
+  if (!Array.isArray(tasks)) throw new Error(`suite ${suite}: expected tasks[] (or { tasks: [...] })`);
+  const provider = getProvider(providerName, po);
+  const rep = await runStopAxis(tasks, provider, seed, STOP_NUDGES, stamp());
+  const outPath = out ?? `runs/stopaxis-${rep.provider.replace(/[^\w.-]/g, '_')}-seed${seed}.json`;
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(rep, null, 2));
+
+  console.log(`provider=${rep.provider} seed=${seed}  n=${rep.n_tasks}  (stop-axis probe of the HALT decision)\n`);
+  console.log(`clean rates:  premature-stop ${pct(rep.clean_rates.premature_stop)}   over-run ${pct(rep.clean_rates.over_run)}   success ${pct(rep.clean_rates.success)}\n`);
+  for (const n of rep.per_nudge) {
+    const moved = Math.abs(n.deltas.premature_stop.delta) > 1e-9 || Math.abs(n.deltas.over_run.delta) > 1e-9 || Math.abs(n.deltas.success.delta) > 1e-9;
+    const flag = n.kind === 'control' && moved ? '   ⚠ control moved — confound, treat other deltas with caution' : '';
+    console.log(`${n.id} (${n.kind})${flag}`);
+    for (const m of ['premature_stop', 'over_run', 'success'] as const) {
+      const d = n.deltas[m];
+      console.log(`   ${m.padEnd(16)} ${pp(d.delta).padStart(7)}  [${pp(d.lo)}, ${pp(d.hi)}]`);
+    }
+  }
+  console.log(`\n${rep.guard_note}`);
+  console.log(`report → ${outPath}`);
+
+  if (failOnFragile) {
+    const c = correctStopAxis(rep, { alpha });
+    // A Holm-significant PLACEBO control means task-independent filler text moved the halt decision —
+    // the run is confounded and the other deltas can't be trusted. Fail hard, don't silently greenlight.
+    const confound = c.cells.filter((cell) => cell.kind === 'control' && cell.significant);
+    if (confound.length) { console.error(`\nFAIL: placebo control is Holm-significant (${confound.map((x) => x.metric).join(', ')}) — the run is confounded; other deltas are untrustworthy`); process.exit(1); }
+    const bad = c.cells.filter((cell) => cell.kind !== 'control' && cell.significant);
+    if (bad.length) { console.error(`\nFAIL: ${bad.length} stop-axis cell(s) Holm-significant: ${bad.map((b) => `${b.nudge}/${b.metric}`).join(', ')}`); process.exit(1); }
+    console.log(`gate ok: placebo control unmoved and no non-control nudge is Holm-significant.`);
   }
 }
 
@@ -315,6 +458,25 @@ async function main() {
       ratio: { type: 'string' },
       'fail-under': { type: 'string' },
       'fail-on-high': { type: 'boolean' },
+      // gate
+      baseline: { type: 'string' },
+      tolerance: { type: 'string' },
+      alpha: { type: 'string' },
+      unpaired: { type: 'boolean' },
+      'allow-schema-change': { type: 'boolean' },
+      // audit sarif
+      sarif: { type: 'string' },
+      // mcp-tools
+      server: { type: 'string' },
+      from: { type: 'string' },
+      protocol: { type: 'string' },
+      timeout: { type: 'string' },
+      // multiseed
+      seeds: { type: 'string' },
+      reports: { type: 'string' },
+      // stop-axis
+      'stop-axis': { type: 'boolean' },
+      'fail-on-fragile': { type: 'boolean' },
     },
   });
   const cmd = positionals[0];
@@ -328,35 +490,49 @@ async function main() {
   if (!values.suite && !values.tools && cmd === 'fix') throw new Error('fix needs --suite <file.json> or --tools <schema.json>');
   if (!values.suite && !values.tools && cmd === 'matrix') throw new Error('matrix needs --suite <file.json> or --tools <schema.json>');
   if (!values.suite && !values.tools && cmd === 'flywheel') throw new Error('flywheel needs --suite <file.json> or --tools <schema.json>');
+  if (!values.suite && cmd === 'multi') throw new Error('multi needs --suite <tasks.json>');
+  if (cmd === 'multiseed' && !values.reports && !((values.suite || values.tools) && values.seeds)) throw new Error('multiseed needs --reports <a,b,c> (aggregate saved reports) OR --suite|--tools with --seeds 1,2,3 (run)');
 
   const failUnder = values['fail-under'] !== undefined ? Number(values['fail-under']) : undefined;
+  const alpha = values.alpha !== undefined ? Number(values.alpha) : 0.05;
 
   if (cmd === 'run') await cmdRun(values.suite!, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'attack') await cmdAttack(values.suite, values.tools, values.provider!, seed, values.out, po, variant, failUnder);
-  else if (cmd === 'multi') await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
+  else if (cmd === 'multi') {
+    if (values['stop-axis']) {
+      if (failUnder !== undefined) console.error('note: --fail-under is ignored with --stop-axis; gate the stop axis with --fail-on-fragile');
+      await cmdStopAxis(values.suite!, values.provider!, seed, values.out, po, !!values['fail-on-fragile'], alpha);
+    } else await cmdMulti(values.suite!, values.provider!, seed, values.out, po, failUnder);
+  }
   else if (cmd === 'fix') await cmdFix(values.suite, values.tools, values.provider!, seed, values.out, po, variant);
   else if (cmd === 'matrix') await cmdMatrix(values.suite, values.tools, values.provider!, seed, values.out, po, values.strategies);
   else if (cmd === 'flywheel') await cmdFlywheel(values.suite, values.tools, values.provider!, seed, values.ratio !== undefined ? Number(values.ratio) : 0.5, values.out, po);
-  else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high']); }
+  else if (cmd === 'multiseed') await cmdMultiseed(values.suite, values.tools, values.provider!, values.seeds, values.reports, variant, values.out, po, alpha, failUnder);
+  else if (cmd === 'gate') { const cur = values.report ?? positionals[1]; if (!values.baseline || !cur) throw new Error('gate needs --baseline <base.json> and --report <current.json>'); cmdGate(values.baseline, cur, { tolerance: values.tolerance !== undefined ? Number(values.tolerance) : undefined, alpha, unpaired: !!values.unpaired, allowSchemaChange: !!values['allow-schema-change'] }); }
+  else if (cmd === 'mcp-tools') await cmdMcpTools(values.server, values.from, values.out, { protocol: values.protocol, timeout: values.timeout !== undefined ? Number(values.timeout) : undefined });
+  else if (cmd === 'audit') { if (!values.tools) throw new Error('--tools <schema.json> is required'); cmdAudit(values.tools, values['fail-on-high'], values.sarif); }
   else if (cmd === 'verify') { const path = values.report ?? positionals[1]; if (!path) throw new Error('verify needs --report <report.json>'); cmdVerify(path); }
-  else if (cmd === 'stats') { const path = values.report ?? positionals[1]; if (!path) throw new Error('stats needs --report <attack-report.json>'); cmdStats(path); }
+  else if (cmd === 'stats') { const path = values.report ?? positionals[1]; if (!path) throw new Error('stats needs --report <attack-report.json>'); cmdStats(path, alpha); }
   else if (cmd === 'coevo') {
     if (!values.report) throw new Error('--report <attack-report.json> is required');
     await cmdCoevo(values.report, values.out ?? 'coevo-out');
   } else {
     console.error('usage:  loopward <command>   (run with no command for interactive mode)');
-    console.error('  audit  --tools <schema.json>                      confusable tool names, no key, instant');
+    console.error('  audit  --tools <schema.json> [--sarif out.sarif]  confusable tool names, no key, instant (+ SARIF)');
     console.error('  attack --tools <schema.json> | --suite <f.json>   6 red-team attacks + robustness CI');
     console.error('  fix    --tools <schema.json> | --suite <f.json>   propose renames, re-verify the delta');
     console.error('  matrix --tools <schema.json> | --suite <f.json>   compare loop strategies on a fixed model');
-    console.error('  multi  --suite <tasks.json>                       multi-step loop: stop / over-run / success');
+    console.error('  multi  --suite <tasks.json> [--stop-axis]         multi-step loop: stop / over-run / success');
+    console.error('  multiseed --seeds 1,2,3 --suite|--tools | --reports a,b,c   N seeds, honest across-seed spread');
     console.error('  coevo  --report <attack-report.json>              misroutes → DPO / reward / SFT data');
     console.error('  flywheel --tools <schema.json> | --suite <f.json> train guardrail, re-measure held-out lift');
-    console.error('  stats  --report <attack-report.json>              Holm-corrected significance across the 6 attacks');
+    console.error('  gate   --baseline <base.json> --report <cur.json> fail(1) if robustness regressed (case-paired, Holm)');
+    console.error('  stats  --report <report.json>                     Holm-corrected significance (attack or stop-axis)');
     console.error('  verify --report <report.json>                     re-check a report\'s deterministic fields, offline');
+    console.error('  mcp-tools --server "<cmd>" | --from <saved.json>  import a live MCP server\'s tool catalog');
     console.error('  run    --suite <f.json>                           clean routing accuracy only');
     console.error(`  common: [--provider ${PROVIDER_NAMES.join('|')}] [--model M] [--base-url URL] [--seed 42] [--out f]`);
-    console.error('  keys via env, one per provider: OPENAI_API_KEY, DEEPSEEK_API_KEY, GROQ_API_KEY, DMXAPI_API_KEY, ...');
+    console.error('  keys via env, one per provider: OPENAI_API_KEY, DEEPSEEK_API_KEY, GROQ_API_KEY, ...');
     process.exit(1);
   }
 }

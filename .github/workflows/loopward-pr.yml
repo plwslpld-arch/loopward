@@ -1,0 +1,60 @@
+name: loopward-pr
+# Runs loopward on a PR and upserts ONE sticky robustness comment (found by hidden marker, never
+# spammed). Plain `pull_request` — NOT pull_request_target — so fork code never gets a write token
+# or secrets; fork PRs skip the write steps and fall back to the job step-summary.
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write
+concurrency:
+  group: loopward-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+jobs:
+  robustness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: self-check renderer (offline, no key)
+        run: node packages/ci/src/selfcheck.ts
+      - name: audit (always, no key)
+        run: |
+          mkdir -p runs
+          node packages/cli/src/cli.ts audit --tools datasets/tools/sample-tools.json | tee runs/audit.txt
+      - name: attack (same-repo PRs only; skipped on forks; needs LOOPWARD_MODEL_KEY)
+        id: attack
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          LOOPWARD_MODEL_KEY: ${{ secrets.LOOPWARD_MODEL_KEY }}
+        run: |
+          if [ -z "$LOOPWARD_MODEL_KEY" ]; then echo "have_report=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+          OPENAI_API_KEY="$LOOPWARD_MODEL_KEY" node packages/cli/src/cli.ts attack \
+            --tools datasets/tools/sample-tools.json --provider openai \
+            --model "${LOOPWARD_MODEL:-gpt-5.5}" --seed 42 --out runs/attack.json
+          echo "have_report=true" >> "$GITHUB_OUTPUT"
+      - name: render comment body
+        run: |
+          if [ "${{ steps.attack.outputs.have_report }}" = "true" ]; then
+            node packages/ci/src/render-pr.ts runs/attack.json --comment comment.md \
+              --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          else
+            node packages/ci/src/render-pr.ts --audit-only runs/audit.txt --comment comment.md
+          fi
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+      - name: upsert sticky PR comment (skipped on forks — token is read-only there)
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          ID=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+                 --jq 'map(select(.body | contains("<!-- loopward-robustness-report -->"))) | .[0].id // empty')
+          if [ -n "$ID" ]; then
+            jq -Rs '{body: .}' comment.md | gh api -X PATCH "repos/$REPO/issues/comments/$ID" --input -
+          else
+            jq -Rs '{body: .}' comment.md | gh api -X POST "repos/$REPO/issues/$PR/comments" --input -
+          fi

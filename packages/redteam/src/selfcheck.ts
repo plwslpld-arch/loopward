@@ -1,12 +1,14 @@
 // `node src/selfcheck.ts` — exits non-zero on failure.
 import assert from 'node:assert/strict';
-import type { RoutingCase } from '../../core/src/types.ts';
+import type { Provider, RoutingCase } from '../../core/src/types.ts';
+import type { MultistepTask } from '../../core/src/multistep.ts';
 import { mockProvider } from '../../core/src/provider.ts';
 import { ATTACKS, getAttack } from './attacks.ts';
 import { bootstrapDeltaCI } from './metrics.ts';
 import { runAttacks } from './attack-run.ts';
 import { runFix } from './fix.ts';
 import { assertMeaningPreserved, MeaningPreservationError, guardRecall, loadGoldSlice } from './oracle-guard.ts';
+import { runStopAxis, STOP_NUDGES, assertStopMeaningPreserved, StopMeaningError } from './stop-axis.ts';
 
 // every attack preserves ground_truth and keeps it in the candidate list
 const c: RoutingCase = { id: 't', intent: 'What is the weather in Tokyo', candidates: ['get_weather', 'get_forecast'], ground_truth: 'get_weather' };
@@ -83,3 +85,54 @@ assert.equal(gr.caught, 5, 'guard should catch all 5 structural flips');
 assert.equal(gr.missed, 2, 'guard is expected to miss the 2 semantic-only flips');
 assert.ok(gr.recall > 0.7 && gr.recall < 0.75, 'recall should be 5/7');
 console.log(`selfcheck OK — guard: 6/6 attacks pass, caught ${gr.caught}/${gr.flips} flips (recall ${(gr.recall * 100).toFixed(0)}%), ${gr.missed} semantic-only misses, ${gr.false_positives} false positives`);
+
+// ── stop-axis: a nudge-sensitive stub proves each nudge moves the HALT decision as expected ────────
+{
+  const premature = STOP_NUDGES.find((n) => n.kind === 'premature')!.text;
+  const overrun = STOP_NUDGES.find((n) => n.kind === 'overrun')!.text;
+  // Reads which tools were already called from the loop's progress lines, then obeys the nudge:
+  // premature -> stop immediately; overrun -> never stop (loop hits the cap); else -> normal completion.
+  const nudgeStub: Provider = {
+    name: 'nudge-stub',
+    async route(prompt, candidates) {
+      const called = new Set([...prompt.matchAll(/called (\S+) →/g)].map((m) => m[1].toLowerCase()));
+      const tools = candidates.filter((c) => c.toLowerCase() !== 'done');
+      if (prompt.includes(premature)) return { tool: 'done' };
+      if (prompt.includes(overrun)) return { tool: tools[0] };
+      const next = tools.find((t) => !called.has(t.toLowerCase()));
+      return { tool: next ?? 'done' };
+    },
+  };
+  const saTasks: MultistepTask[] = [
+    { id: 't1', task: 'do alpha then beta', tools: ['alpha', 'beta'], required: ['alpha', 'beta'] },
+    { id: 't2', task: 'do gamma then delta', tools: ['gamma', 'delta'], required: ['gamma', 'delta'] },
+  ];
+  const sa = await runStopAxis(saTasks, nudgeStub, 42);
+  assert.equal(sa.clean_rates.success, 1, 'clean stub completes every task');
+  assert.equal(sa.clean_rates.premature_stop, 0);
+  assert.equal(sa.clean_rates.over_run, 0);
+  const byId = new Map(sa.per_nudge.map((n) => [n.id, n]));
+  const prem = byId.get('premature')!, over = byId.get('overrun')!, ctrl = byId.get('control')!;
+  assert.ok(prem.deltas.premature_stop.delta > 0, 'premature nudge raises premature_stop');
+  assert.ok(prem.deltas.success.delta < 0, 'premature nudge lowers success');
+  assert.ok(over.deltas.over_run.delta > 0, 'overrun nudge raises over_run');
+  assert.ok(over.deltas.success.delta < 0, 'overrun nudge lowers success');
+  for (const m of ['premature_stop', 'over_run', 'success'] as const)
+    assert.equal(ctrl.deltas[m].delta, 0, 'the control nudge is a placebo — zero movement');
+  for (const n of sa.per_nudge) for (const m of ['premature_stop', 'over_run', 'success'] as const) {
+    const d = n.deltas[m];
+    assert.ok(d.lo <= d.delta && d.delta <= d.hi, 'CI brackets the point delta');
+  }
+  assert.deepEqual(sa.vectors.clean.taskIds, sa.vectors.byNudge['premature'].taskIds, 'per-task vectors aligned by taskId');
+  // guard: a nudge that names a task tool is rejected (it could smuggle ground truth); a benign one is not.
+  assert.throws(
+    () => assertStopMeaningPreserved(saTasks[0], { id: 'x', kind: 'control', text: 'reply done and do not call alpha again' }),
+    (e: unknown) => e instanceof StopMeaningError && e.code === 'nudge_names_tool',
+  );
+  assert.doesNotThrow(() => assertStopMeaningPreserved(saTasks[0], { id: 'y', kind: 'control', text: 'proceed with more steps if anything remains' }));
+  // word-boundary, NOT substring: 'alphabet' contains 'alpha' but must not trip (a plain .includes regression would).
+  assert.doesNotThrow(() => assertStopMeaningPreserved(saTasks[0], { id: 'z', kind: 'control', text: 'update the alphabet chart before finishing' }), 'a tool name inside a larger word must not trip the guard');
+  // ...but a whole-word match next to punctuation MUST trip.
+  assert.throws(() => assertStopMeaningPreserved(saTasks[0], { id: 'w', kind: 'control', text: 'do not run alpha-only mode' }), (e: unknown) => e instanceof StopMeaningError && e.code === 'nudge_names_tool');
+  console.log('selfcheck OK — stop-axis: premature↑stop↓success, overrun↑run↓success, control placebo=0, guard is word-boundary (alphabet≠alpha) and rejects tool-naming nudges');
+}

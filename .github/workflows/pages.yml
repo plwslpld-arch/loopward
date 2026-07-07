@@ -1,0 +1,60 @@
+name: pages
+# Builds the self-contained findings dashboard from data.json and (optionally) a shields
+# endpoint badge, then publishes BOTH from one Pages deploy. A repo has a single Pages site,
+# so the dashboard and the badge JSON must ship in the same artifact — never two deploy jobs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/dashboard/**"
+      - "packages/ci/**"
+      - "assets/logo.png"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: build self-contained dashboard from data.json
+        run: node packages/dashboard/build.mjs
+      - name: drift note (committed index.html vs fresh build)
+        run: git diff --stat --exit-code packages/dashboard/index.html || echo "::warning::committed index.html is stale; run 'npm run dashboard' and commit. Deploying the fresh build."
+      - name: stage site
+        run: |
+          mkdir -p _site
+          cp packages/dashboard/index.html _site/index.html
+      - name: robustness badge (grey 'not measured' unless LOOPWARD_MODEL_KEY is set — no auto API spend)
+        env:
+          LOOPWARD_MODEL_KEY: ${{ secrets.LOOPWARD_MODEL_KEY }}
+        run: |
+          if [ -z "$LOOPWARD_MODEL_KEY" ]; then
+            node packages/ci/src/render-pr.ts --unmeasured --badge _site/robustness.json
+          else
+            OPENAI_API_KEY="$LOOPWARD_MODEL_KEY" node packages/cli/src/cli.ts attack \
+              --tools datasets/tools/sample-tools.json --provider openai \
+              --model "${LOOPWARD_MODEL:-gpt-5.5}" --seed 42 --out runs/attack.json
+            node packages/ci/src/render-pr.ts runs/attack.json --badge _site/robustness.json
+          fi
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

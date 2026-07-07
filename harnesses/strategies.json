@@ -1,0 +1,98 @@
+{
+  "_comment": "Language-neutral documentation mirror of the four loop Variants defined in packages/core/src/loop.ts (DEFAULT_STRATEGIES). METADATA ONLY: nothing imports this at runtime; the loop behavior lives solely in loop.ts and this file is a machine-checkable mirror of its node sequences and branch markers, not a config loader or plugin registry. ponytail: hand-kept in sync with loop.ts rather than generated, because there is no runtime that would consume a generator.",
+  "oracle": "route-exact-v1 (scoreRoute/norm) is the sole scorer for every strategy; no strategy calls an LLM to judge.",
+  "strategies": [
+    {
+      "id": "single",
+      "node_sequence": ["perceive", "route", "act", "verify", "stop"],
+      "feedback_turns": 0,
+      "reflects": false,
+      "mechanism": "one-shot route(): perceive the intent + candidates, route once, act, verify against the oracle, stop. No re-examination, no feedback.",
+      "when_it_helps": "The baseline. Cheapest loop and the control every other strategy is measured against; strong when the first pick is already right (100% clean routing accuracy on deepseek-chat).",
+      "when_it_hurts": "Has no recovery path: once the single route is wrong under perturbation it stays wrong. Loses 12-43pp under boring intent-side attacks that do not change the correct answer.",
+      "evidence": [
+        {
+          "finding": "F1",
+          "source": "docs/findings.md",
+          "model": "deepseek-chat",
+          "seed": 42,
+          "direction": "baseline",
+          "note": "single variant: 100% clean routing, but the same model drops 12-43pp under six intent-side perturbations; the most effective attacks are the mundane ones (minimal_context +42.9pp, boundary_blur +28.6pp), not the adversarial negation_trap (+2.4pp, not significant)."
+        }
+      ]
+    },
+    {
+      "id": "self-check",
+      "node_sequence": ["perceive", "route", "reflect", "act", "verify", "stop"],
+      "feedback_turns": 1,
+      "reflects": true,
+      "mechanism": "single route(), then one reflect node: the model is shown its own first pick and asked to double-check / switch to a better candidate before committing. One extra route() call, same oracle.",
+      "when_it_helps": "On some models the reflect node recovers robustness: GLM-5.1 gains +6.9pp attacked accuracy with a bootstrap CI that excludes 0 (F5).",
+      "when_it_hurts": "On other models the same reflect node second-guesses already-correct routes toward the confusing near-duplicate: deepseek-chat loses -11.9pp on confusion attacks and even -7.1pp on clean (F2). The sign is decided by the model, not the harness.",
+      "evidence": [
+        {
+          "finding": "F5",
+          "source": "docs/findings.md",
+          "model": "GLM-5.1",
+          "seed": 42,
+          "direction": "helps",
+          "note": "matrix on datasets/routing/sample.json (n=12): self-check recovers +6.9pp attacked accuracy [+2.8, +11.1], CI excludes 0."
+        },
+        {
+          "finding": "F2",
+          "source": "docs/findings.md",
+          "model": "deepseek-chat",
+          "seed": 42,
+          "direction": "hurts",
+          "note": "tools.json (n=42): self-check degrades routing on confusion attacks (boundary_blur -11.9pp, cross_skill_confusion -11.9pp) and lowers clean accuracy by -7.1pp. A plausible harness upgrade makes robustness worse. Paired with F5 this is NOT an endorsement: same node, opposite sign, model-dependent."
+        }
+      ]
+    },
+    {
+      "id": "react",
+      "node_sequence": ["perceive", "think", "route", "act", "verify", "stop"],
+      "feedback_turns": 1,
+      "reflects": false,
+      "mechanism": "a think node (free-text generate() reasoning about which candidate fits) runs first, then route() is fed the intent plus that reasoning. Reasoning-before-routing; falls back to plain route() when the provider has no generate().",
+      "when_it_helps": "Gives the router explicit reasoning context before it picks; a middle option between one-shot and re-examination that neither improves nor degrades on the measured model (a neutral, non-harmful loop upgrade).",
+      "when_it_hurts": "On GLM-5.1 the extra reasoning turn buys nothing: +0.0pp vs single (F5). Cost of an extra generate() call with no robustness payoff on this suite.",
+      "evidence": [
+        {
+          "finding": "F5",
+          "source": "docs/findings.md",
+          "model": "GLM-5.1",
+          "seed": 42,
+          "direction": "neutral",
+          "note": "matrix on datasets/routing/sample.json (n=12): react = +0.0pp vs single. Reasoning-before-routing neither helped nor hurt this model on this suite."
+        }
+      ]
+    },
+    {
+      "id": "observe",
+      "node_sequence": ["perceive", "route", "observe", "act", "verify", "stop"],
+      "feedback_turns": 2,
+      "reflects": false,
+      "mechanism": "route() once, then up to 2 observe feedback turns: each turn shows the model its current pick and a stub observation ('it returned: ok') and lets it keep or switch the tool; stops early once the pick stabilizes. The routing analogue of the multi-step observation loop.",
+      "when_it_helps": "Feeding an observation back is the single most impactful harness change measured: in the multi-step loop, adding a one-line stub observation after each call lifted task success 10% -> 60% and cut over-run 80% -> 20%, same model and tasks (F4). On GLM-5.1 the routing observe variant recovers +6.9pp attacked accuracy (F5).",
+      "when_it_hurts": "The observation is a stub ('returned ok'), not a real tool result, so it cannot correct a route that was already committed to the wrong tool; on models where re-feeding a prior pick induces second-guessing it can drift the same way self-check does. Levels are not fully independent from self-check (both re-feed a prior pick).",
+      "evidence": [
+        {
+          "finding": "F4",
+          "source": "docs/findings.md",
+          "model": "deepseek-chat",
+          "seed": 42,
+          "direction": "helps",
+          "note": "multistep tasks.json (n=10): the harness's observation design, not the model, drove loop success. Feeding a one-line observation back after each call lifted multi-step success 10% -> 60% and cut over-run 80% -> 20%."
+        },
+        {
+          "finding": "F5",
+          "source": "docs/findings.md",
+          "model": "GLM-5.1",
+          "seed": 42,
+          "direction": "helps",
+          "note": "matrix on datasets/routing/sample.json (n=12): observe recovers +6.9pp attacked accuracy [+2.8, +11.1], tying self-check on this model/suite."
+        }
+      ]
+    }
+  ]
+}

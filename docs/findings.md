@@ -191,3 +191,43 @@ harness is the axis a model-vs-model leaderboard cannot see.
 so this is a qualitative cross-finding, not a paired comparison). Strategy levels are not mechanistically
 independent (self-check and observe both re-feed a prior pick, and here they tie). The sign and the
 CI-excludes-0 conclusion are the signal; the exact magnitude is suite- and model-dependent.
+
+---
+
+## Hardening the single-seed caveat (multi-seed)
+
+Every table above is **single-seed**. That is the honest ceiling of a pilot, and `loopward multiseed` is the
+path off it — but it does not let anyone fabricate the missing runs. Run the suite across N seeds and aggregate:
+
+```
+loopward multiseed --seeds 1,2,3,4,5 --suite datasets/routing/tools.json --provider deepseek
+# or aggregate reports produced overnight, fully offline:
+loopward multiseed --reports runs/a-s1.json,runs/a-s2.json,runs/a-s3.json
+```
+
+The aggregation is deliberately conservative about what a seed sweep can claim. In this system the model routes
+at temperature 0 and the seed is passed to the API, so extra seeds do **not** add independent case-level
+variance — they only sample whatever residual run-to-run stochasticity the endpoint has. So the aggregator
+treats the **seed as the replication unit**: it reduces each seed to one delta per attack, reports the
+across-seed mean and spread (SD / min–max) as a *separate* uncertainty from each seed's own case bootstrap, and
+computes **no** across-seed p-value, t-interval, or Fisher/Stouffer combination (all of which would manufacture
+significance from near-determinism). When the seeds come back bit-identical — the common temperature-0 case —
+it flags the result `degenerate` and states in words that SD = 0 means *no independent replication occurred*,
+**not** certainty.
+
+**What is and isn't done here.** The `multiseed` runner, its honest aggregation, and its offline self-check
+ship and are green. Actually re-running all 13 models × several seeds needs live API keys and budget, so the
+tables above stay labeled single-seed until real replicates replace them — this repo will not print a
+multi-seed number it did not measure. Reproduce or extend any row with the command above.
+
+## A second axis: the stopping decision
+
+Routing is *which* tool. Stopping is *when to halt* — a control-flow property that only exists once a loop
+decides for itself when it is done, and it is invisible to single-turn routing (a run can route every step
+correctly and still fail by stopping after one of two required tools, or by never stopping). `loopward multi
+--stop-axis` probes it directly: it appends a global, task-independent nudge to only the stop-decision prompt
+(a `premature` "you're probably done" push, an `overrun` "there's likely more" push, and a neutral placebo
+control) and measures how each moves premature-stop / over-run / success against a clean run, paired per task.
+The nudges name no tool (enforced by a guard), so they can bias only the halt decision, never leak which tool is
+correct. `stats` applies the same Holm correction with **pre-registered** per-cell directions, and the placebo
+control must stay unflagged. This is a distinct axis from the six routing attacks, not another routing class.

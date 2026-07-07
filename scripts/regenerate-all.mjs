@@ -43,5 +43,6 @@ for (const n of names) {
 }
 
 run(['packages/dashboard/build.mjs']);
-console.log('\nrebuilt dashboard (index.html) from current data.json.');
+run(['scripts/heatmap.mjs']); // keep the README heatmap SVGs in lockstep with data.json
+console.log('\nrebuilt dashboard (index.html) + README heatmap SVGs from current data.json.');
 process.exit(identical ? 0 : 1);

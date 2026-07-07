@@ -13,8 +13,9 @@
 [![npm](https://img.shields.io/npm/v/loopward.svg)](https://www.npmjs.com/package/loopward)
 [![CI](https://github.com/plwslpld-arch/loopward/actions/workflows/ci.yml/badge.svg)](https://github.com/plwslpld-arch/loopward/actions/workflows/ci.yml)
 [![Zero deps](https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg)](./package.json)
+[![routing robustness](https://img.shields.io/endpoint?url=https%3A%2F%2Fplwslpld-arch.github.io%2Floopward%2Frobustness.json)](https://plwslpld-arch.github.io/loopward/)
 
-English | [简体中文](./README.zh-CN.md)
+English | [简体中文](./README.zh-CN.md)  ·  [**Live findings dashboard →**](https://plwslpld-arch.github.io/loopward/)
 
 </div>
 
@@ -26,6 +27,13 @@ measured lift. Everyone is designing agent loops; almost nobody checks whether t
 > Thirteen frontier models route tools near-perfectly on clean inputs in our suite (most at 100%, none below 90%).
 > Add one injected line and the drop ranges from **0 points** (Claude Opus-4-8 barely moves) to **100** (Gemini-3.1-pro
 > gets it wrong on every case in this suite). Single-seed, n=42 — a pilot, not a ranking. See [`docs/findings.md`](./docs/findings.md).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/heatmap-dark.svg">
+  <img alt="Model × attack routing-robustness heatmap: each cell is the accuracy points lost to that attack (green held, red broke); the signed number is printed in every cell, so it reads without color. Rows are 13 models, columns are the 6 attacks, sorted by prompt injection." src="assets/heatmap.svg" width="100%">
+</picture>
+
+<sub>Points of routing accuracy lost to each attack. Green held, red broke; the number is in every cell (colorblind-safe). Single seed, n=42, deterministic oracle — a pilot, not a verdict. The [live dashboard](https://plwslpld-arch.github.io/loopward/) has hover detail and a bilingual toggle.</sub>
 
 ## Quickstart
 
@@ -67,9 +75,12 @@ Anthropic's `{ name, description, input_schema }` array and a plain `[{ name, de
 | `fix`      | Proposes a clearer rename for the confusable tools, then re-verifies the delta through the same oracle. |
 | `matrix`   | Runs the same attacks through `single` / `self-check` / `react` / `observe` on a *fixed* model — the harness under test. |
 | `flywheel` | Splits your cases, turns failures into a guardrail, and measures the held-out routing lift with a CI. |
-| `multi`    | Runs a real multi-step loop and scores what single-turn routing can't see: premature-stop, over-run, success. |
+| `multi`    | Runs a real multi-step loop and scores what single-turn routing can't see: premature-stop, over-run, success. Add `--stop-axis` to probe the *halt* decision. |
+| `gate`     | Fails CI (exit 1) when routing regressed vs a saved baseline — case-paired bootstrap + Holm, not a flaky fixed threshold. |
+| `multiseed`| Runs N seeds and reports the across-seed spread honestly (seed is the replication unit; case-pairs are never pooled). |
+| `mcp-tools`| Imports a live MCP server's tool catalog over stdio, so every command above works on the exact schema it ships. |
 | `coevo`    | Exports every misroute as DPO preference pairs, verifiable-reward samples, and SFT negatives. |
-| `stats`    | Re-scores a report with a one-sided permutation test + Holm correction across the six attacks. |
+| `stats`    | Re-scores a report with a one-sided permutation test + Holm correction (works on attack *and* stop-axis reports). |
 | `verify`   | Re-derives a report's deterministic fields offline (hashes, accuracy, seeded CIs) and checks they agree. |
 
 The three that make it more than one-more-eval:
@@ -97,14 +108,34 @@ Works with any OpenAI-compatible endpoint. First-party presets (`openai`, `deeps
 Keys come from the environment, one variable per provider, so nothing secret lives in the repo. Full list and
 examples in [`docs/providers.md`](./docs/providers.md).
 
+## Bring tools from an MCP server
+
+Point loopward at a running MCP server and it pulls the exact tool catalog the server ships (JSON-RPC over
+stdio, zero deps), so you audit the real thing instead of a hand-copied schema:
+
+```bash
+npx loopward mcp-tools --server "npx -y @modelcontextprotocol/server-everything" --out tools.json
+npx loopward audit --tools tools.json
+```
+
+`--server` executes the command you give it locally, so only import from servers you trust. A saved
+`tools/list` response also works fully offline with `--from saved.json`. The written file carries a
+`_source` provenance block (server, protocol version, tool count, hash) — an MCP catalog is a point-in-time
+snapshot, and the file says so.
+
 ## Gate it in CI
 
 ```bash
-npx loopward audit  --tools ./tools.json --fail-on-high                                    # fast, no key
-npx loopward attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70
+npx loopward audit  --tools ./tools.json --fail-on-high                                       # fast, no key
+npx loopward attack --tools ./tools.json --provider openai --model gpt-5.5 --fail-under 70 --out cur.json
+npx loopward gate   --baseline baseline.json --report cur.json                                # regressed vs baseline?
 ```
 
-Both exit non-zero when the threshold is breached. Full setup in [`docs/ci.md`](./docs/ci.md).
+`--fail-under` is an absolute floor; `gate` is the relative counterpart — it fails only when the current run is
+*significantly* worse than a saved baseline (case-paired bootstrap, Holm-corrected), so one flipped case from
+temperature-0 jitter won't trip it. Also emit SARIF for GitHub code scanning with `audit --sarif out.sarif`, and
+drop the ready-made [`loopward-pr`](.github/workflows/loopward-pr.yml) workflow in to get a sticky robustness
+comment on every PR. Full setup in [`docs/ci.md`](./docs/ci.md).
 
 ## Findings
 
@@ -123,12 +154,14 @@ See [`RELATED-WORK.md`](./RELATED-WORK.md) for an honest comparison with CATS/To
 ## Layout
 
 ```
-packages/core       loop runner + strategies, routing oracle, providers, multi-step, tool audit, manifest
-packages/redteam    6 attack classes, robustness metrics + bootstrap CI, fix, meaning-preservation guard
-packages/eval       harness-matrix (variance across strategies), stats (Holm), verify (report linter)
+packages/core       loop runner + strategies, routing oracle, providers, multi-step, tool audit, manifest, MCP + SARIF
+packages/redteam    6 attack classes, robustness metrics + bootstrap CI, fix, meaning guard, stop-axis probe
+packages/eval       harness-matrix, stats (Holm), verify (report linter), gate (regression), seed-sweep (multi-seed)
 packages/coevo      export failures as training signal; micro-loop flywheel experiment
-packages/cli        audit / attack / fix / matrix / flywheel / multi / coevo / stats / verify
-packages/dashboard  self-contained bilingual findings dashboard (GitHub Pages)
+packages/cli        audit / attack / fix / matrix / flywheel / multi / gate / multiseed / mcp-tools / coevo / stats / verify
+packages/ci         pure PR-comment + shields-badge renderer (formats reports; never scores)
+packages/dashboard  self-contained bilingual findings dashboard (deployed to GitHub Pages)
+harnesses           the 4 loop strategies as "specimens under test" (matrix's independent variable) + when each helps/hurts
 datasets            routing, multistep, tool-schema, and gold-label suites
 ```
 
